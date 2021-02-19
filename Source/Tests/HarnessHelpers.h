@@ -510,7 +510,7 @@ public:
       AuxVariables.emplace_back(auxv_t{33, 0}); // AT_SYSINFO_EHDR - Address of the start of VDSO
     }
 
-    AuxVariables.emplace_back(auxv_t{3, DB.GetElfBase()}); // Program header
+    AuxVariables.emplace_back(auxv_t{3, DB.GetElfBase() + 0x40}); // Program header
     AuxVariables.emplace_back(auxv_t{7, DB.GetElfBase()}); // Interpreter address
     AuxVariables.emplace_back(auxv_t{9, DB.DefaultRIP()}); // AT_ENTRY
     AuxVariables.emplace_back(auxv_t{0, 0}); // Null ender
