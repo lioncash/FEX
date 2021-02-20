@@ -67,7 +67,7 @@ bool ELFContainer::IsSupportedELF(std::string const &Filename) {
 }
 
 ELFContainer::ELFContainer(std::string const &Filename, std::string const &RootFS) {
-  if (!LoadELF(Filename)) {
+  if (!LoadELF(RootFS + Filename)) {
     LogMan::Msg::E("Couldn't Load ELF file");
     return;
   }

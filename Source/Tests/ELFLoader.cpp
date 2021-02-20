@@ -123,9 +123,12 @@ void InterpreterHandler(std::string *Filename, std::string const &RootFS, std::v
 
     // If the filename is absolute then prepend the rootfs
     // If it is relative then don't append the rootfs
+    /*
+    // always looks in the rootfs now
     if (ShebangProgram[0] == '/') {
       ShebangProgram = RootFS + ShebangProgram;
     }
+    */
     *Filename = ShebangProgram;
 
     // Insert all the arguments at the start

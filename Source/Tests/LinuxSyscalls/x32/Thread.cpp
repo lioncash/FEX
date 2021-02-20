@@ -269,11 +269,12 @@ namespace FEX::HLE::x32 {
       // Check the rootfs if it is available first
       if (pathname[0] == '/') {
         Filename = FEX::HLE::_SyscallHandler->RootFSPath() + pathname;
-
+        // always looks in the rootfs now
+/*
         bool exists = std::filesystem::exists(Filename, ec);
         if (ec || !exists) {
           Filename = pathname;
-        }
+        }*/
       }
       else {
         Filename = pathname;
@@ -301,6 +302,7 @@ namespace FEX::HLE::x32 {
       if (FEX::HLE::_SyscallHandler->IsInterpreter()) {
         if (FEX::HLE::_SyscallHandler->IsInterpreterInstalled() && ELFLoader::ELFContainer::IsSupportedELF(Filename.c_str())) {
           PushBackDefaultArgs(argv, envp);
+          // todo: pass argv0 here
           Result = execve(Filename.c_str(), const_cast<char *const *>(&Args[0]), const_cast<char *const *>(&Envp[0]));
           SYSCALL_ERRNO();
         }
@@ -314,6 +316,7 @@ namespace FEX::HLE::x32 {
         Args.push_back("--");
       }
 
+      // todo: pass pathname seperatelly from argv0 here
       Args.emplace_back(Filename.c_str());
       PushBackDefaultArgs(argv, envp);
 
