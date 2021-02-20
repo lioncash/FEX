@@ -10,11 +10,13 @@ public:
   ~ELFSymbolDatabase();
 
   uint64_t GetElfBase() const;
+  uint64_t GetInterpreterBase() const;
 
   void MapMemoryRegions(std::function<void*(uint64_t, uint64_t, bool)> Mapper);
   void WriteLoadableSections(::ELFLoader::ELFContainer::MemoryWriter Writer);
 
   uint64_t DefaultRIP() const;
+  uint64_t EntrypointRIP() const;
 
   using RangeType = std::pair<uint64_t, uint64_t>;
   ::ELFLoader::ELFSymbol const *GetSymbolInRange(RangeType Address);

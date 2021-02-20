@@ -54,6 +54,7 @@ ELFSymbolDatabase::ELFSymbolDatabase(::ELFLoader::ELFContainer *file)
   : File {file} {
   FillLibrarySearchPaths();
 
+#if 0
   std::vector<std::string> UnfilledDependencies;
   std::vector<ELFInfo*> NewLibraries;
 
@@ -80,8 +81,6 @@ ELFSymbolDatabase::ELFSymbolDatabase(::ELFLoader::ELFContainer *file)
     }
   };
 
-  LocalInfo.Container = File;
-  LocalInfo.Name = "/proc/self/exe";
   NewLibraries.emplace_back(&LocalInfo);
 
   do {
@@ -92,6 +91,16 @@ ELFSymbolDatabase::ELFSymbolDatabase(::ELFLoader::ELFContainer *file)
       LoadDependencies();
     }
   } while (!UnfilledDependencies.empty() && !NewLibraries.empty());
+#endif
+
+  LocalInfo.Container = File;
+  LocalInfo.Name = "/proc/self/exe";
+
+  if (File->InterpreterELF) {
+    auto Info = DynamicELFInfo.emplace_back(new ELFInfo{});
+    Info->Name = "interpreter";
+    Info->Container = File->InterpreterELF.get();
+  }
 
   FillMemoryLayouts(0);
   FillInitializationOrder();
@@ -157,6 +166,9 @@ void ELFSymbolDatabase::FillMemoryLayouts(uint64_t DefinedBase) {
 
     std::get<2>(LocalInfo.CustomLayout) = CurrentELFAlignedSize;
     LocalInfo.GuestBase = 0;
+    ELFBases = CurrentELFBase + 0x1000000;
+
+    ELFBases += CurrentELFAlignedSize;
     ELFMemorySize += CurrentELFAlignedSize;
   }
 
@@ -195,12 +207,13 @@ void ELFSymbolDatabase::FillInitializationOrder() {
         continue;
 
       bool AllLibsLoaded = true;
+      /*
       for (auto &Lib : *ELF->Container->GetNecessaryLibs()) {
         if (AlreadyInList.find(Lib) == AlreadyInList.end()) {
           AllLibsLoaded = false;
           break;
         }
-      }
+      }*/
 
       if (AllLibsLoaded) {
         InitializationOrder.emplace_back(ELF);
@@ -302,11 +315,27 @@ void ELFSymbolDatabase::HandleRelocations() {
   LocalInfo.Container->FixupRelocations(LocalInfo.ELFBase, LocalInfo.GuestBase, SymbolGetter);
 }
 
+uint64_t ELFSymbolDatabase::GetInterpreterBase() const {
+  if (File->InterpreterELF) {
+    return DynamicELFInfo[0]->GuestBase;
+  } else {
+    return LocalInfo.GuestBase;
+  }
+}
+
 uint64_t ELFSymbolDatabase::GetElfBase() const {
-  return LocalInfo.GuestBase;
+  return std::get<0>(LocalInfo.CustomLayout);
 }
 
 uint64_t ELFSymbolDatabase::DefaultRIP() const {
+  if (File->InterpreterELF) {
+    return DynamicELFInfo[0]->GuestBase + DynamicELFInfo[0]->Container->GetEntryPoint();
+  } else {
+    return File->GetEntryPoint() + LocalInfo.GuestBase;
+  }
+}
+
+uint64_t ELFSymbolDatabase::EntrypointRIP() const {
   return File->GetEntryPoint() + LocalInfo.GuestBase;
 }
 

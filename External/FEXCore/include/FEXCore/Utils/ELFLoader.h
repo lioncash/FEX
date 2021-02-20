@@ -7,6 +7,7 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+#include <memory>
 
 // Add macros which are missing in some versions of <elf.h>
 #ifndef ELF32_ST_VISIBILITY
@@ -30,7 +31,7 @@ struct ELFSymbol {
 
 class ELFContainer {
 public:
-  ELFContainer(std::string const &Filename, std::string const &RootFS, bool CustomInterpreter);
+  ELFContainer(std::string const &Filename, std::string const &RootFS);
   ~ELFContainer();
 
   uint64_t GetEntryPoint() const {
@@ -72,7 +73,7 @@ public:
   bool HasDynamicLinker() const { return !DynamicLinker.empty(); }
   std::string &InterpreterLocation() { return DynamicLinker; }
 
-  std::vector<char const*> const *GetNecessaryLibs() const { return &NecessaryLibs; }
+  //std::vector<char const*> const *GetNecessaryLibs() const { return &NecessaryLibs; }
 
   void PrintRelocationTable() const;
 
@@ -104,13 +105,16 @@ public:
 
   static bool IsSupportedELF(std::string const &Filename);
 
+  std::unique_ptr<ELFContainer> InterpreterELF;
+  uint64_t ProgramHdrOffset;
+  
 private:
   bool LoadELF(std::string const &Filename);
   bool LoadELF_32();
   bool LoadELF_64();
   void CalculateMemoryLayouts();
   void CalculateSymbols();
-  void GetDynamicLibs();
+  //void GetDynamicLibs();
 
   // Information functions
   void PrintHeader() const;
@@ -143,7 +147,7 @@ private:
   std::unordered_map<std::string, ELFSymbol *> SymbolMap;
   std::map<uint64_t, ELFSymbol *> SymbolMapByAddress;
 
-  std::vector<char const*> NecessaryLibs;
+  //std::vector<char const*> NecessaryLibs;
 
   uint64_t MinPhysicalMemoryLocation{0};
   uint64_t MaxPhysicalMemoryLocation{0};

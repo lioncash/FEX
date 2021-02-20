@@ -66,13 +66,13 @@ bool ELFContainer::IsSupportedELF(std::string const &Filename) {
   return false;
 }
 
-ELFContainer::ELFContainer(std::string const &Filename, std::string const &RootFS, bool CustomInterpreter) {
+ELFContainer::ELFContainer(std::string const &Filename, std::string const &RootFS) {
   if (!LoadELF(Filename)) {
     LogMan::Msg::E("Couldn't Load ELF file");
     return;
   }
 
-  if (InterpreterHeader._64 && !CustomInterpreter) {
+  if (InterpreterHeader._64) {
     // If we we are dynamic application then we have an interpreter program header
     // We need to load that ELF instead if it exists
     // We are no longer dynamic since we are executing the interpreter
@@ -83,18 +83,8 @@ ELFContainer::ELFContainer(std::string const &Filename, std::string const &RootF
     else {
       RawString = &RawFile.at(InterpreterHeader._64->p_offset);
     }
-    if (!RootFS.empty() && LoadELF(RootFS + RawString)) {
-      // Found the interpreter in the rootfs
-    }
-    else if (!LoadELF(RawString)) {
-      LogMan::Msg::E("Couldn't load dynamic ELF file's interpreter");
-      return;
-    }
+    InterpreterELF = std::make_unique<ELFContainer>(RootFS + RawString, RootFS);
   }
-  else if (InterpreterHeader._64) {
-    GetDynamicLibs();
-  }
-
 
   CalculateMemoryLayouts();
   CalculateSymbols();
@@ -112,7 +102,7 @@ ELFContainer::ELFContainer(std::string const &Filename, std::string const &RootF
 }
 
 ELFContainer::~ELFContainer() {
-  NecessaryLibs.clear();
+  //NecessaryLibs.clear();
   SymbolMapByAddress.clear();
   SymbolMap.clear();
   Symbols.clear();
@@ -192,6 +182,8 @@ bool ELFContainer::LoadELF_32() {
     SectionHeaders[i]._32 = &RawShdrs[i];
   }
 
+  ProgramHdrOffset = Header._32.e_phoff;
+
   for (uint32_t i = 0; i < Header._32.e_phnum; ++i) {
     ProgramHeaders[i]._32 = &RawPhdrs[i];
     if (ProgramHeaders[i]._32->p_type == PT_INTERP) {
@@ -232,6 +224,8 @@ bool ELFContainer::LoadELF_64() {
   for (uint32_t i = 0; i < Header._64.e_shnum; ++i) {
     SectionHeaders[i]._64 = &RawShdrs[i];
   }
+
+  ProgramHdrOffset = Header._64.e_phoff;
 
   for (uint32_t i = 0; i < Header._64.e_phnum; ++i) {
     ProgramHeaders[i]._64 = &RawPhdrs[i];
@@ -559,45 +553,6 @@ void ELFContainer::CalculateSymbols() {
   }
 }
 
-void ELFContainer::GetDynamicLibs() {
-  if (Mode == MODE_32BIT) {
-    for (uint32_t i = 0; i < SectionHeaders.size(); ++i) {
-      Elf32_Shdr const *hdr = SectionHeaders.at(i)._32;
-      if (hdr->sh_type == SHT_DYNAMIC) {
-        Elf32_Shdr const *StrHeader = SectionHeaders.at(hdr->sh_link)._32;
-        char const *SHStrings = &RawFile.at(StrHeader->sh_offset);
-
-        size_t Entries = hdr->sh_size / hdr->sh_entsize;
-        for (size_t j = 0; i < Entries; ++j) {
-          Elf32_Dyn const *Dynamic = reinterpret_cast<Elf32_Dyn const*>(&RawFile.at(hdr->sh_offset + j * hdr->sh_entsize));
-          if (Dynamic->d_tag == DT_NULL) break;
-          if (Dynamic->d_tag == DT_NEEDED) {
-            NecessaryLibs.emplace_back(&SHStrings[Dynamic->d_un.d_val]);
-          }
-        }
-      }
-    }
-  }
-  else {
-    for (uint32_t i = 0; i < SectionHeaders.size(); ++i) {
-      Elf64_Shdr const *hdr = SectionHeaders.at(i)._64;
-      if (hdr->sh_type == SHT_DYNAMIC) {
-        Elf64_Shdr const *StrHeader = SectionHeaders.at(hdr->sh_link)._64;
-        char const *SHStrings = &RawFile.at(StrHeader->sh_offset);
-
-        size_t Entries = hdr->sh_size / hdr->sh_entsize;
-        for (size_t j = 0; i < Entries; ++j) {
-          Elf64_Dyn const *Dynamic = reinterpret_cast<Elf64_Dyn const*>(&RawFile.at(hdr->sh_offset + j * hdr->sh_entsize));
-          if (Dynamic->d_tag == DT_NULL) break;
-          if (Dynamic->d_tag == DT_NEEDED) {
-            NecessaryLibs.emplace_back(&SHStrings[Dynamic->d_un.d_val]);
-          }
-        }
-      }
-    }
-  }
-}
-
 void ELFContainer::AddSymbols(SymbolAdder Adder) {
   for (auto &Sym : Symbols) {
     if (Sym.FileOffset) {
@@ -885,6 +840,9 @@ void ELFContainer::PrintRelocationTable() const {
 }
 
 void ELFContainer::FixupRelocations(void *ELFBase, uint64_t GuestELFBase, SymbolGetter Getter) {
+  // done either by ld-linux or libc, no need to do this
+  return;
+  
   if (Mode == MODE_32BIT) {
   }
   else {

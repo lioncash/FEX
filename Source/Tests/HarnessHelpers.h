@@ -447,14 +447,14 @@ private:
 
 public:
   ELFCodeLoader(std::string const &Filename, std::string const &RootFS, [[maybe_unused]] std::vector<std::string> const &args, std::vector<std::string> const &ParsedArgs, char **const envp = nullptr, FEXCore::Config::Value<std::string> *AdditionalEnvp = nullptr)
-    : File {Filename, RootFS, false}
+    : File {Filename, RootFS}
     , DB {&File}
     , Args {args} {
 
     if (File.HasDynamicLinker()) {
       // If the file isn't static then we need to add the filename of interpreter
       // to the front of the argument list
-      Args.emplace(Args.begin(), File.InterpreterLocation());
+      //Args.emplace(Args.begin(), File.InterpreterLocation());
     }
 
     if (!!envp) {
@@ -510,9 +510,9 @@ public:
       AuxVariables.emplace_back(auxv_t{33, 0}); // AT_SYSINFO_EHDR - Address of the start of VDSO
     }
 
-    AuxVariables.emplace_back(auxv_t{3, DB.GetElfBase()}); // Program header
-    AuxVariables.emplace_back(auxv_t{7, DB.GetElfBase()}); // Interpreter address
-    AuxVariables.emplace_back(auxv_t{9, DB.DefaultRIP()}); // AT_ENTRY
+    AuxVariables.emplace_back(auxv_t{3, DB.GetElfBase() + File.ProgramHdrOffset}); // Program header
+    AuxVariables.emplace_back(auxv_t{7, DB.GetInterpreterBase()}); // Interpreter address
+    AuxVariables.emplace_back(auxv_t{9, DB.EntrypointRIP()}); // AT_ENTRY
     AuxVariables.emplace_back(auxv_t{0, 0}); // Null ender
 
     for (auto &Arg : ParsedArgs) {
