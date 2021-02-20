@@ -319,7 +319,7 @@ uint64_t ELFSymbolDatabase::GetInterpreterBase() const {
   if (File->InterpreterELF) {
     return DynamicELFInfo[0]->GuestBase;
   } else {
-    return LocalInfo.GuestBase;
+    return 0;
   }
 }
 

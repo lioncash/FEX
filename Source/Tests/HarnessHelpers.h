@@ -16,6 +16,7 @@
 #include <FEXCore/Utils/LogManager.h>
 #include <FEXCore/Utils/ELFLoader.h>
 #include <FEXCore/Utils/ELFSymbolDatabase.h>
+#include <sys/auxv.h>
 
 namespace FEX::HarnessHelper {
   inline bool CompareStates(FEXCore::Core::CPUState const& State1,
@@ -451,12 +452,6 @@ public:
     , DB {&File}
     , Args {args} {
 
-    if (File.HasDynamicLinker()) {
-      // If the file isn't static then we need to add the filename of interpreter
-      // to the front of the argument list
-      //Args.emplace(Args.begin(), File.InterpreterLocation());
-    }
-
     if (!!envp) {
       // If we had envp passed in then make sure to set it up on the guest
       for (unsigned i = 0;; ++i) {
@@ -482,15 +477,15 @@ public:
       EnvironmentBackingSize += EnvironmentVariables[i].size() + 1;
     }
 
-    AuxVariables.emplace_back(auxv_t{11, 1000}); // AT_UID
-    AuxVariables.emplace_back(auxv_t{12, 1000}); // AT_EUID
-    AuxVariables.emplace_back(auxv_t{13, 1000}); // AT_GID
-    AuxVariables.emplace_back(auxv_t{14, 1000}); // AT_EGID
-    AuxVariables.emplace_back(auxv_t{17, 0x64}); // AT_CLKTIK
+    AuxVariables.emplace_back(auxv_t{11, getauxval(AT_UID)}); // AT_UID
+    AuxVariables.emplace_back(auxv_t{12, getauxval(AT_EUID)}); // AT_EUID
+    AuxVariables.emplace_back(auxv_t{13, getauxval(AT_GID)}); // AT_GID
+    AuxVariables.emplace_back(auxv_t{14, getauxval(AT_EGID)}); // AT_EGID
+    AuxVariables.emplace_back(auxv_t{17, getauxval(AT_CLKTCK)}); // AT_CLKTIK
     AuxVariables.emplace_back(auxv_t{6, 0x1000}); // AT_PAGESIZE
-    AuxVariables.emplace_back(auxv_t{25, ~0ULL}); // AT_RANDOM
-    AuxVariables.emplace_back(auxv_t{23, 0}); // AT_SECURE
-    AuxVariables.emplace_back(auxv_t{8, 0}); // AT_FLAGS
+    AuxVariables.emplace_back(auxv_t{25, getauxval(AT_RANDOM)}); // AT_RANDOM
+    AuxVariables.emplace_back(auxv_t{23, getauxval(AT_SECURE)}); // AT_SECURE
+    AuxVariables.emplace_back(auxv_t{8, getauxval(AT_FLAGS)}); // AT_FLAGS
     AuxVariables.emplace_back(auxv_t{5, File.GetProgramHeaderCount()});
 
     if (File.GetMode() == ELFLoader::ELFContainer::MODE_64BIT) {
@@ -501,7 +496,7 @@ public:
       //AuxVariables.emplace_back(auxv_t{24, ~0ULL}); // AT_PLATFORM
       // On x86 only allows userspace to check for monitor and fs/gs base writing in CPL3
       //AuxVariables.emplace_back(auxv_t{26, 0}); // AT_HWCAP2
-      AuxVariables.emplace_back(auxv_t{32, 0}); // AT_SYSINFO - Entry point to syscall
+      //AuxVariables.emplace_back(auxv_t{32, 0}); // AT_SYSINFO - Entry point to syscall not set in amd64
       AuxVariables.emplace_back(auxv_t{33, 0}); // AT_SYSINFO_EHDR - Address of the start of VDSO
     }
     else {
@@ -590,6 +585,7 @@ public:
     EnvpPointers[EnvironmentVariables.size()] = 0;
 
     for (size_t i = 0; i < AuxVariables.size(); ++i) {
+      #if 0 // maybe remarshal this?
       if (AuxVariables[i].key == 25) {
         // Random value is always 128bits
         AuxType Random{25, static_cast<PointerType>(StackPointer + RandomNumberOffset)};
@@ -599,7 +595,9 @@ public:
         AuxVPointers[i].key = Random.key;
         AuxVPointers[i].val = Random.val;
       }
-      else {
+      else 
+      #endif
+      {
         AuxVPointers[i].key = AuxVariables[i].key;
         AuxVPointers[i].val = AuxVariables[i].val;
       }
