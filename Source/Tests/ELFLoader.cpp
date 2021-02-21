@@ -227,7 +227,7 @@ int main(int argc, char **argv, char **const envp) {
 
   InterpreterHandler(&Program, LDPath(), &Args);
 
-  if (!std::filesystem::exists(Program)) {
+  if (!std::filesystem::exists(LDPath() + Program)) {
     // Early exit if the program passed in doesn't exist
     // Will prevent a crash later
     LogMan::Msg::E("%s: command not found", Program.c_str());
@@ -261,7 +261,7 @@ int main(int argc, char **argv, char **const envp) {
   FEXCore::Config::SetConfig(CTX, FEXCore::Config::CONFIG_ABI_LOCAL_FLAGS, ABILocalFlags());
   FEXCore::Config::SetConfig(CTX, FEXCore::Config::CONFIG_ABI_NO_PF, AbiNoPF());
   FEXCore::Config::SetConfig(CTX, FEXCore::Config::CONFIG_DUMPIR, DumpIR());
-  FEXCore::Config::Set(FEXCore::Config::CONFIG_APP_FILENAME, std::filesystem::canonical(Program));
+  FEXCore::Config::Set(FEXCore::Config::CONFIG_APP_FILENAME, std::filesystem::canonical(LDPath() + Program));
   FEXCore::Config::Set(FEXCore::Config::CONFIG_IS64BIT_MODE, Loader.Is64BitMode() ? "1" : "0");
 
   std::unique_ptr<FEX::HLE::SignalDelegator> SignalDelegation = std::make_unique<FEX::HLE::SignalDelegator>();
