@@ -79,7 +79,10 @@ namespace FEXCore::CPU {
   }
 }
 
+static std::unordered_map<uint64_t, FEXCore::Core::LocalIREntry> LocalIRCache;
+
 static std::mutex AOTIRCacheLock;
+static std::mutex LocalIRCacheLock;
 
 namespace FEXCore::Core {
 struct ThreadLocalData {
@@ -206,7 +209,8 @@ namespace FEXCore::Context {
   }
 
   void Context::AddThreadRIPsToEntryList(FEXCore::Core::InternalThreadState *Thread) {
-    for (auto &IR : Thread->LocalIRCache) {
+    std::lock_guard<std::mutex> lk(LocalIRCacheLock);
+    for (auto &IR : LocalIRCache) {
       EntryList.insert(IR.first);
     }
   }
@@ -526,7 +530,10 @@ namespace FEXCore::Context {
       // Run the passmanager over the IR from the dispatcher
       Thread->PassManager->Run(IR);
       Core::LocalIREntry Entry = {Addr, 0ULL, decltype(Entry.IR)(IR->CreateIRCopy()), decltype(Entry.RAData)(Thread->PassManager->GetRAPass() ? Thread->PassManager->GetRAPass()->PullAllocationData() : nullptr), decltype(Entry.DebugData)(new Core::DebugData())};
-      Thread->LocalIRCache.insert({Addr, std::move(Entry)});
+      {
+        std::lock_guard<std::mutex> lk(LocalIRCacheLock);
+        LocalIRCache.insert({Addr, std::move(Entry)});
+      }
     };
 
     LocalLoader->AddIR(IRHandler);
@@ -633,7 +640,8 @@ namespace FEXCore::Context {
     }
 
     if (AlsoClearIRCache) {
-      Thread->LocalIRCache.clear();
+      std::lock_guard<std::mutex> lk(LocalIRCacheLock);
+      LocalIRCache.clear();
     }
   }
 
@@ -829,10 +837,13 @@ namespace FEXCore::Context {
     uint64_t StartAddr {};
     uint64_t Length {};
 
-    // Do we already have this in the IR cache?
-    auto LocalEntry = Thread->LocalIRCache.find(GuestRIP);
+{
+  std::lock_guard<std::mutex> lk(LocalIRCacheLock);
 
-    if (LocalEntry != Thread->LocalIRCache.end()) {
+    // Do we already have this in the IR cache?
+    auto LocalEntry = LocalIRCache.find(GuestRIP);
+
+    if (LocalEntry != LocalIRCache.end()) {
       // Entry already exists
       // pull in the data
       IRList = LocalEntry->second.IR.get();
@@ -843,6 +854,7 @@ namespace FEXCore::Context {
 
       GeneratedIR = false;
     }
+}
 
     if (IRList == nullptr && Config.AOTIRLoad) {
       std::lock_guard<std::mutex> lk(AOTIRCacheLock);
@@ -1032,6 +1044,7 @@ namespace FEXCore::Context {
 
   uintptr_t Context::CompileBlock(FEXCore::Core::CpuStateFrame *Frame, uint64_t GuestRIP) {
     auto Thread = Frame->Thread;
+    //printf("frame: %p Thread: %p GuestRIP: %lx\n", Frame, Thread, GuestRIP);
 
     // Is the code in the cache?
     // The backends only check L1 and L2, not L3
@@ -1100,7 +1113,10 @@ namespace FEXCore::Context {
     // Insert to caches if we generated IR
     if (GeneratedIR) {
       Core::LocalIREntry Entry = {StartAddr, Length, decltype(Entry.IR)(IRList), decltype(Entry.RAData)(RAData), decltype(Entry.DebugData)(DebugData)};
-      Thread->LocalIRCache.insert({GuestRIP, std::move(Entry)});
+      {
+        std::lock_guard<std::mutex> lk(LocalIRCacheLock);
+        LocalIRCache.insert({GuestRIP, std::move(Entry)});
+      }
 
       // Add to AOT cache if aot generation is enabled
       if (Config.AOTIRCapture && RAData) {
@@ -1195,7 +1211,10 @@ namespace FEXCore::Context {
   }
 
   void Context::RemoveCodeEntry(FEXCore::Core::InternalThreadState *Thread, uint64_t GuestRIP) {
-    Thread->LocalIRCache.erase(GuestRIP);
+    {
+      std::lock_guard<std::mutex> lk(LocalIRCacheLock);
+      LocalIRCache.erase(GuestRIP);
+    }
     Thread->LookupCache->Erase(GuestRIP);
   }
 
@@ -1222,8 +1241,9 @@ namespace FEXCore::Context {
   }
 
   bool Context::GetDebugDataForRIP(uint64_t RIP, FEXCore::Core::DebugData *Data) {
-    auto it = ParentThread->LocalIRCache.find(RIP);
-    if (it == ParentThread->LocalIRCache.end()) {
+    std::lock_guard<std::mutex> lk(LocalIRCacheLock);
+    auto it = LocalIRCache.find(RIP);
+    if (it == LocalIRCache.end()) {
       return false;
     }
 

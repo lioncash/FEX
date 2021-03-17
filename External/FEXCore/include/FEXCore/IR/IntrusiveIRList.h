@@ -289,7 +289,7 @@ private:
 struct IRListViewDeleter {
   void operator()(IRListView* r) {
     if (!r->IsShared) {
-      delete r;
+      //delete r;
     }
   }
 };

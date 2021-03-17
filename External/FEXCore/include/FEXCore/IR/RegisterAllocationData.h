@@ -47,7 +47,7 @@ class RegisterAllocationData {
 struct RegisterAllocationDataDeleter {
   void operator()(RegisterAllocationData* r) {
     if (!r->IsShared) {
-      free(r);
+      //free(r);
     }
   }
 };

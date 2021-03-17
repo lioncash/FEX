@@ -28,10 +28,10 @@ namespace FEXCore::CPU {
 
 static void InterpreterExecution(FEXCore::Core::CpuStateFrame *Frame) {
   auto Thread = Frame->Thread;
+for(;;);
+  //auto LocalEntry = Thread->LocalIRCache.find(Thread->CurrentFrame->State.rip);
 
-  auto LocalEntry = Thread->LocalIRCache.find(Thread->CurrentFrame->State.rip);
-
-  InterpreterOps::InterpretIR(Thread, LocalEntry->second.IR.get(), LocalEntry->second.DebugData.get());
+  //InterpreterOps::InterpretIR(Thread, LocalEntry->second.IR.get(), LocalEntry->second.DebugData.get());
 }
 
 bool InterpreterCore::HandleSIGBUS(int Signal, void *info, void *ucontext) {

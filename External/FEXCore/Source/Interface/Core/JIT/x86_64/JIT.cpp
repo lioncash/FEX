@@ -570,7 +570,8 @@ void *X86JITCore::CompileCode([[maybe_unused]] FEXCore::IR::IRListView const *IR
   this->RAData = RAData;
 
   // Fairly excessive buffer range to make sure we don't overflow
-  uint32_t BufferRange = SSACount * 16;
+  uint32_t BufferRange = SSACount * 64;
+  //fprintf(stderr, "%u used, %u range %lu total size\n", getSize(), BufferRange, CurrentCodeBuffer->Size);
   if ((getSize() + BufferRange) > CurrentCodeBuffer->Size) {
     ThreadState->CTX->ClearCodeCache(ThreadState, false);
   }

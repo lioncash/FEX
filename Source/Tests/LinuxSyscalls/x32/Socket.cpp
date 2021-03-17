@@ -33,11 +33,28 @@ namespace FEX::HLE::x32 {
     OP_RECVMMSG = 19,
     OP_SENDMMSG = 20,
   };
+  
+  using fd_set32 = uint32_t;
+#ifdef _M_X86_64
+  uint32_t socketcall(uint32_t call, uint32_t *Arguments) {
+    uint32_t Result{};
+    __asm volatile("int $0x80;"
+        : "=a" (Result)
+        : "a" (SYSCALL_x86_socketcall)
+        , "b" (call)
+        , "c" (Arguments)
+        : "memory");
+    return Result;
+  }
+#endif
 
   void RegisterSocket() {
     REGISTER_SYSCALL_IMPL_X32(socketcall, [](FEXCore::Core::CpuStateFrame *Frame, uint32_t call, uint32_t *Arguments) -> uint64_t {
       uint64_t Result{};
-
+#ifdef _M_X86_64
+      Result = socketcall(call, Arguments);
+      return Result;
+#endif
       switch (call) {
         case OP_SOCKET: {
           Result = ::socket(Arguments[0], Arguments[1], Arguments[2]);

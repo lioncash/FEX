@@ -68,7 +68,7 @@ public:
 
   void ClearCache() override;
 
-  static constexpr size_t INITIAL_CODE_SIZE = 1024 * 1024 * 16;
+  static constexpr size_t INITIAL_CODE_SIZE = 1024 * 1024 * 256;
   static constexpr size_t MAX_CODE_SIZE = 1024 * 1024 * 256;
   void CopyNecessaryDataForCompileThread(CPUBackend *Original) override;
 

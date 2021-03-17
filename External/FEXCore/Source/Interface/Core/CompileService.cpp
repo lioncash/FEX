@@ -57,7 +57,7 @@ namespace FEXCore {
         }
       }
 
-      LogMan::Throw::A(CompileThreadData->LocalIRCache.size() == 0, "Compile service must never have LocalIRCache");
+      //LogMan::Throw::A(CompileThreadData->LocalIRCache.size() == 0, "Compile service must never have LocalIRCache");
 
       CompileMutex.unlock();
     }
