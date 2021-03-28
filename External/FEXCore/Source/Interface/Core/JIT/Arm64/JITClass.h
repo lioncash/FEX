@@ -1,3 +1,10 @@
+/*
+$info$
+tags: backend|arm64
+desc: Main glue logic of the arm64 splatter backend
+$end_info$
+*/
+
 #pragma once
 
 #include "Interface/Core/LookupCache.h"

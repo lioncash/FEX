@@ -1,3 +1,10 @@
+/*
+$info$
+tags: backend|arm64
+desc: Conversion ops of the arm64 splatter backend
+$end_info$
+*/
+
 #include "Interface/Core/JIT/Arm64/JITClass.h"
 
 namespace FEXCore::CPU {

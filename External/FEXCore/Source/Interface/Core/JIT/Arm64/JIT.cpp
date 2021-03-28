@@ -1,3 +1,15 @@
+/*
+$info$
+glossary: Splatter ~ a code generator backend that concaternates configurable macros instead of doing isel
+glossary: IR ~ Intermidiate Representation, a of storage for our high-level opcode representation
+glossary: SSA ~ Single Static Assignment, a form of representing IR in memory
+glossary: Basic Block ~ A block of instructions with no control flow, terminated by control flow
+glossary: Fragment ~ A Collection of basic blocks, possible an entire guest function or a fraction of it
+tags: backend|arm64
+desc: Main glue logic of the arm64 splatter backend
+$end_info$
+*/
+
 #include "Interface/Context/Context.h"
 
 #include "Interface/Core/ArchHelpers/Arm64.h"
