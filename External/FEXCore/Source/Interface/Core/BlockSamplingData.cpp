@@ -13,20 +13,20 @@ namespace FEXCore {
 
     Output << "Entry, Min, Max, Total, Calls, Average" << std::endl;
 
-    for (auto& it : SamplingMap) {
-      if (!it.second->TotalCalls)
+    for (const auto& [RIP, Block] : SamplingMap) {
+      if (Block->TotalCalls == 0)
         continue;
 
-      Output << "0x" << std::hex << it.first
-             << ", " << std::dec << it.second->Min
-             << ", " << std::dec << it.second->Max
-             << ", " << std::dec << it.second->TotalTime
-             << ", " << std::dec << it.second->TotalCalls
-             << ", " << std::dec << ((double)it.second->TotalTime / (double)it.second->TotalCalls)
+      Output << "0x" << std::hex << RIP
+             << ", " << std::dec << Block->Min
+             << ", " << std::dec << Block->Max
+             << ", " << std::dec << Block->TotalTime
+             << ", " << std::dec << Block->TotalCalls
+             << ", " << std::dec << ((double)Block->TotalTime / (double)Block->TotalCalls)
              << std::endl;
     }
     Output.close();
-    LogMan::Msg::D("Dumped %d blocks of sampling data", SamplingMap.size());
+    LogMan::Msg::D("Dumped %zu blocks of sampling data", SamplingMap.size());
   }
 
   BlockSamplingData::BlockData *BlockSamplingData::GetBlockData(uint64_t RIP) {
