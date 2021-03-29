@@ -13,7 +13,7 @@ namespace FEXCore {
 
     Output << "Entry, Min, Max, Total, Calls, Average" << std::endl;
 
-    for (auto it : SamplingMap) {
+    for (auto& it : SamplingMap) {
       if (!it.second->TotalCalls)
         continue;
 
@@ -32,20 +32,18 @@ namespace FEXCore {
   BlockSamplingData::BlockData *BlockSamplingData::GetBlockData(uint64_t RIP) {
     auto it = SamplingMap.find(RIP);
     if (it != SamplingMap.end()) {
-      return it->second;
+      return it->second.get();
     }
-    BlockData *NewData = new BlockData{};
-    memset(NewData, 0, sizeof(BlockData));
+
+    auto NewData = std::make_unique<BlockData>();
     NewData->Min = ~0ULL;
-    SamplingMap[RIP] = NewData;
-    return NewData;
+
+    auto Inserted = SamplingMap.insert_or_assign(RIP, std::move(NewData));
+    return Inserted.first->second.get();
   }
 
   BlockSamplingData::~BlockSamplingData() {
     DumpBlockData();
-    for (auto it : SamplingMap) {
-      delete it.second;
-    }
     SamplingMap.clear();
   }
 }

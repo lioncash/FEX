@@ -1,6 +1,8 @@
 #pragma once
+
+#include <cstdint>
+#include <memory>
 #include <unordered_map>
-#include <stdint.h>
 
 namespace FEXCore {
 class BlockSamplingData {
@@ -18,6 +20,6 @@ public:
   void DumpBlockData();
 
 private:
-  std::unordered_map<uint64_t, BlockData*> SamplingMap;
+  std::unordered_map<uint64_t, std::unique_ptr<BlockData>> SamplingMap;
 };
 }
