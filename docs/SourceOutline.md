@@ -1,4 +1,4 @@
-# FEX-2103-172-ge7bdcd23
+# FEX-2103-174-gcd77f811
 
 ## External/FEXCore
 See [FEXCore/Readme.md](../External/FEXCore/Readme.md) for more details
@@ -121,6 +121,19 @@ C++ Functions to generate IR. See IR.json for spec.
 IR to IR Optimization
 - [PassManager.cpp](../External/FEXCore/Source/Interface/IR/PassManager.cpp): Defines which passes are run, and runs them
 - [PassManager.h](../External/FEXCore/Source/Interface/IR/PassManager.h)
+- [ConstProp.cpp](../External/FEXCore/Source/Interface/IR/Passes/ConstProp.cpp): ConstProp, ZExt elim, addressgen coalesce, const pooling, fcmp reduction, const inlining
+- [DeadCodeElimination.cpp](../External/FEXCore/Source/Interface/IR/Passes/DeadCodeElimination.cpp)
+- [DeadContextStoreElimination.cpp](../External/FEXCore/Source/Interface/IR/Passes/DeadContextStoreElimination.cpp): Transforms ContextLoad/Store to temporaries, similar to mem2reg
+- [DeadStoreElimination.cpp](../External/FEXCore/Source/Interface/IR/Passes/DeadStoreElimination.cpp): Cross block store-after-store elimination
+- [IRCompaction.cpp](../External/FEXCore/Source/Interface/IR/Passes/IRCompaction.cpp): Sorts the ssa storage in memory, needed for RA and others
+- [IRValidation.cpp](../External/FEXCore/Source/Interface/IR/Passes/IRValidation.cpp): Sanity checking pass
+- [PhiValidation.cpp](../External/FEXCore/Source/Interface/IR/Passes/PhiValidation.cpp): Sanity checking pass
+- [RedundantFlagCalculationElimination.cpp](../External/FEXCore/Source/Interface/IR/Passes/RedundantFlagCalculationElimination.cpp): This is not used right now, possibly broken
+- [RegisterAllocationPass.cpp](../External/FEXCore/Source/Interface/IR/Passes/RegisterAllocationPass.cpp)
+- [RegisterAllocationPass.h](../External/FEXCore/Source/Interface/IR/Passes/RegisterAllocationPass.h)
+- [StaticRegisterAllocationPass.cpp](../External/FEXCore/Source/Interface/IR/Passes/StaticRegisterAllocationPass.cpp): Replaces Load/StoreContext with Load/StoreReg for SRA regs
+- [SyscallOptimization.cpp](../External/FEXCore/Source/Interface/IR/Passes/SyscallOptimization.cpp): Removes unused arguments if known syscall number
+- [ValueDominanceValidation.cpp](../External/FEXCore/Source/Interface/IR/Passes/ValueDominanceValidation.cpp): Sanity Checking
 
 #### parser
 Text -> IR
