@@ -1,7 +1,6 @@
 /*
 $info$
 tags: backend|arm64
-desc: Alu ops of the arm64 splatter backend
 $end_info$
 */
 
