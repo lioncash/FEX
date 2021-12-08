@@ -91,7 +91,7 @@ class DualIntrusiveAllocator final {
 
 
 class IRListView final {
-  enum Flags {
+  enum Flags : uint64_t {
     FLAG_IsCopy = 1,
     FLAG_Shared = 2,
   };
@@ -155,8 +155,8 @@ public:
     stream.write((char*)&WrittenFlags, sizeof(WrittenFlags));
     
     // inline data
-    stream.write((char*)GetData(), DataSize);
-    stream.write((char*)GetListData(), ListSize);
+    stream.write((char*)GetData(), static_cast<std::streamsize>(DataSize));
+    stream.write((char*)GetListData(), static_cast<std::streamsize>(ListSize));
   }
 
   [[nodiscard]] size_t GetInlineSize() const {
