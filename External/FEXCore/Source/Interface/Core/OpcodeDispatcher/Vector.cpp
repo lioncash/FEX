@@ -558,17 +558,16 @@ void OpDispatchBuilder::SHUFOp(OpcodeArgs) {
   OrderedNode *Src2 = LoadSource(FPRClass, Op, Op->Src[0], Op->Flags, -1);
   uint8_t Shuffle = Op->Src[1].Data.Literal.Value;
 
-  uint8_t NumElements = Size / ElementSize;
+  const size_t NumElements = Size / ElementSize;
 
   auto Dest = Src1;
-  std::array<OrderedNode*, 4> Srcs = {
-  };
+  std::array<OrderedNode*, 4> Srcs{};
 
-  for (int i = 0; i < (NumElements >> 1); ++i) {
+  for (size_t i = 0; i < (NumElements >> 1); ++i) {
     Srcs[i] = Src1;
   }
 
-  for (int i = (NumElements >> 1); i < NumElements; ++i) {
+  for (size_t i = (NumElements >> 1); i < NumElements; ++i) {
     Srcs[i] = Src2;
   }
 
@@ -580,8 +579,8 @@ void OpDispatchBuilder::SHUFOp(OpcodeArgs) {
   // 64bit:
   // [63:0]   = Src1[Selection]
   // [127:64] = Src2[Selection]
-  uint8_t SelectionMask = NumElements - 1;
-  uint8_t ShiftAmount = std::popcount(SelectionMask);
+  const auto SelectionMask = static_cast<uint8_t>(NumElements - 1);
+  const auto ShiftAmount   = static_cast<uint8_t>(std::popcount(SelectionMask));
   for (uint8_t Element = 0; Element < NumElements; ++Element) {
     Dest = _VInsElement(Size, ElementSize, Element, Shuffle & SelectionMask, Dest, Srcs[Element]);
     Shuffle >>= ShiftAmount;
