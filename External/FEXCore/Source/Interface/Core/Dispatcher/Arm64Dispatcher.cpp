@@ -120,7 +120,8 @@ Arm64Dispatcher::Arm64Dispatcher(FEXCore::Context::Context *ctx, FEXCore::Core::
 
   // Mask the address by the virtual address size so we can check for aliases
   if (std::popcount(VirtualMemorySize) == 1) {
-    and_(x3, RipReg, Thread->LookupCache->GetVirtualMemorySize() - 1);
+    const auto AddressSize = static_cast<int64_t>(Thread->LookupCache->GetVirtualMemorySize() - 1);
+    and_(x3, RipReg, AddressSize);
   }
   else {
     ldr(x3, &l_VirtualMemory);
@@ -142,7 +143,7 @@ Arm64Dispatcher::Arm64Dispatcher(FEXCore::Context::Context *ctx, FEXCore::Core::
     and_(x1, x3, 0x0FFF);
 
     // Shift the offset by the size of the block cache entry
-    add(x0, x0, Operand(x1, Shift::LSL, (int)log2(sizeof(FEXCore::LookupCache::LookupCacheEntry))));
+    add(x0, x0, Operand(x1, Shift::LSL, static_cast<uint32_t>(log2(sizeof(FEXCore::LookupCache::LookupCacheEntry)))));
 
     // Load the guest address first to ensure it maps to the address we are currently at
     // This fixes aliasing problems
@@ -437,7 +438,7 @@ Arm64Dispatcher::Arm64Dispatcher(FEXCore::Context::Context *ctx, FEXCore::Core::
 }
 
 void Arm64Dispatcher::SpillSRA(void *ucontext, uint32_t IgnoreMask) {
-  for(int i = 0; i < SRA64.size(); i++) {
+  for (size_t i = 0; i < SRA64.size(); i++) {
     if (IgnoreMask & (1U << SRA64[i].GetCode())) {
       // Skip this one, it's already spilled
       continue;
@@ -445,7 +446,7 @@ void Arm64Dispatcher::SpillSRA(void *ucontext, uint32_t IgnoreMask) {
     ThreadState->CurrentFrame->State.gregs[i] = ArchHelpers::Context::GetArmReg(ucontext, SRA64[i].GetCode());
   }
 
-  for(int i = 0; i < SRAFPR.size(); i++) {
+  for (size_t i = 0; i < SRAFPR.size(); i++) {
     auto FPR = ArchHelpers::Context::GetArmFPR(ucontext, SRAFPR[i].GetCode());
     memcpy(&ThreadState->CurrentFrame->State.xmm[i][0], &FPR, sizeof(__uint128_t));
   }
