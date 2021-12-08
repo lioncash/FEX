@@ -12,6 +12,7 @@ $end_info$
 #include <FEXCore/IR/IREmitter.h>
 #include <FEXCore/IR/IntrusiveIRList.h>
 #include <FEXCore/IR/RegisterAllocationData.h>
+#include <FEXCore/Utils/BitUtils.h>
 #include <FEXCore/Utils/BucketList.h>
 #include <FEXCore/Utils/LogManager.h>
 #include <FEXCore/Utils/MathUtils.h>
@@ -72,7 +73,7 @@ namespace {
   struct LiveRange {
     IR::NodeID Begin{UINT32_MAX};
     IR::NodeID End{UINT32_MAX};
-    uint32_t RematCost{0};
+    int32_t RematCost{0};
     IR::NodeID PreWritten{0};
     PhysicalRegister PrefferedRegister{PhysicalRegister::Invalid()};
     bool Written{false};
@@ -112,19 +113,17 @@ namespace {
 
 
   void AllocatePhysicalRegisters(RegisterGraph *Graph, FEXCore::IR::RegisterClassType Class, uint32_t Count) {
-    Graph->Set.Classes[Class].CountMask = (1 << Count) - 1;
+    Graph->Set.Classes[Class].CountMask = (1U << Count) - 1;
     Graph->Set.Classes[Class].PhysicalCount = Count;
   }
 
   void SetConflict(RegisterGraph *Graph, PhysicalRegister RegAndClass, PhysicalRegister ConflictRegAndClass) {
-    uint32_t Index = (ConflictRegAndClass.Class << 8) | RegAndClass.Raw;
-
-    Graph->Set.Conflicts[Index] |= 1 << ConflictRegAndClass.Reg;
+    const auto Index = (uint32_t{ConflictRegAndClass.Class} << 8) | uint32_t{RegAndClass.Raw};
+    Graph->Set.Conflicts[Index] |= 1U << ConflictRegAndClass.Reg;
   }
 
   uint32_t GetConflicts(RegisterGraph *Graph, PhysicalRegister RegAndClass, FEXCore::IR::RegisterClassType ConflictClass) {
-    uint32_t Index = (ConflictClass.Val << 8) | RegAndClass.Raw;
-
+    const auto Index = (uint32_t{ConflictClass.Val} << 8) | uint32_t{RegAndClass.Raw};
     return Graph->Set.Conflicts[Index];
   }
 
@@ -412,8 +411,8 @@ namespace {
     }
   }
 
-  [[nodiscard]] static uint32_t CalculateRematCost(IROps Op) {
-    constexpr uint32_t DEFAULT_REMAT_COST = 1000;
+  [[nodiscard]] static int32_t CalculateRematCost(IROps Op) {
+    constexpr int32_t DEFAULT_REMAT_COST = 1000;
 
     switch (Op) {
       case IR::OP_CONSTANT:
@@ -987,9 +986,9 @@ namespace {
 
           RegisterConflicts = (~RegisterConflicts) & RAClass->CountMask;
 
-          int Reg = ffs(RegisterConflicts);
+          const int Reg = FindFirstSetBit(RegisterConflicts);
           if (Reg != 0) {
-            RegAndClass = PhysicalRegister({RegClass}, Reg-1);
+            RegAndClass = PhysicalRegister({RegClass}, static_cast<uint8_t>(Reg - 1));
           }
         }
 
