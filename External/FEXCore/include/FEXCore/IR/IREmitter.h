@@ -70,7 +70,7 @@ friend class FEXCore::IR::PassManager;
   IRPair<IROp_Bfe> _Bfe(uint8_t Width, uint8_t lsb, OrderedNode *ssa0) {
     return _Bfe(ssa0, Width, lsb, 0);
   }
-  IRPair<IROp_Bfe> _Bfe(uint8_t DestSize, int8_t Width, uint8_t lsb, OrderedNode *ssa0) {
+  IRPair<IROp_Bfe> _Bfe(uint8_t DestSize, uint8_t Width, uint8_t lsb, OrderedNode *ssa0) {
     return _Bfe(ssa0, Width, lsb, DestSize);
   }
   IRPair<IROp_Sbfe> _Sbfe(uint8_t Width, uint8_t lsb, OrderedNode *ssa0) {

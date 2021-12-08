@@ -27,11 +27,14 @@ def print_ir_structs(ops, defines):
 
     output_file.write("// Default structs\n")
     output_file.write("struct __attribute__((packed)) IROp_Header {\n")
+    output_file.write("\tusing NumArgsType     = uint8_t;\n")
+    output_file.write("\tusing SizeType        = uint8_t;\n")
+    output_file.write("\tusing ElementSizeType = uint8_t;\n\n")
     output_file.write("\tvoid* Data[0];\n")
     output_file.write("\tIROps Op;\n\n")
-    output_file.write("\tuint8_t Size;\n")
-    output_file.write("\tuint8_t NumArgs;\n")
-    output_file.write("\tuint8_t ElementSize : 7;\n")
+    output_file.write("\tSizeType Size;\n")
+    output_file.write("\tNumArgsType NumArgs;\n")
+    output_file.write("\tElementSizeType ElementSize : 7;\n")
     output_file.write("\tbool HasDest : 1;\n")
 
     output_file.write("\ttemplate<typename T>\n")
@@ -436,7 +439,7 @@ def print_ir_allocator_helpers(ops, defines):
             if (HasDestSize):
                 output_file.write("\t\tOp.first->Header.Size = %s;\n" % DestSize)
 
-            output_file.write("\t\tOp.first->Header.ElementSize = Op.first->Header.Size / (%s);\n" % NumElements)
+            output_file.write("\t\tOp.first->Header.ElementSize = static_cast<IROp_Header::ElementSizeType>(Op.first->Header.Size / (%s));\n" % NumElements)
 
             if (HasDest):
                 output_file.write("\t\tOp.first->Header.HasDest = true;\n")
