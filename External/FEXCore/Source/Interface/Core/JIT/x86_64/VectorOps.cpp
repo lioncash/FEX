@@ -128,6 +128,10 @@ DEF_OP(VMov) {
       movaps(GetDst(Node), GetSrc(Op->Header.Args[0].ID()));
       break;
     }
+    case 32: {
+      vmovaps(GetDst(Node), GetSrc(Op->Header.Args[0].ID()));
+      break;
+    }
     default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", OpSize); break;
   }
 }

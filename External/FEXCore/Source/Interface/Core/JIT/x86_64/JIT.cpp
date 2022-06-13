@@ -59,9 +59,9 @@ static void PrintVectorValue(uint64_t Value, uint64_t ValueUpper) {
 namespace FEXCore::CPU {
 
 void X86JITCore::PushRegs() {
-  sub(rsp, 16 * RAXMM_x.size());
+  sub(rsp, 32 * RAXMM_x.size());
   for (size_t i = 0; i < RAXMM_x.size(); ++i) {
-    movaps(ptr[rsp + i * 16], RAXMM_x[i]);
+    vmovaps(ptr[rsp + i * 32], ToYMM(RAXMM_x[i]));
   }
 
   for (auto &Reg : RA64)
@@ -81,10 +81,10 @@ void X86JITCore::PopRegs() {
     pop(RA64[i - 1]);
 
   for (size_t i = 0; i < RAXMM_x.size(); ++i) {
-    movaps(RAXMM_x[i], ptr[rsp + i * 16]);
+    vmovaps(ToYMM(RAXMM_x[i]), ptr[rsp + i * 32]);
   }
 
-  add(rsp, 16 * RAXMM_x.size());
+  add(rsp, 32 * RAXMM_x.size());
 }
 
 void X86JITCore::Op_Unhandled(IR::IROp_Header *IROp, IR::NodeID Node) {
@@ -612,7 +612,7 @@ void *X86JITCore::CompileCode(uint64_t Entry, [[maybe_unused]] FEXCore::IR::IRLi
   SpillSlots = RAData->SpillSlots();
 
   if (SpillSlots) {
-    sub(rsp, SpillSlots * 16);
+    sub(rsp, SpillSlots * 32);
   }
 
 #ifdef BLOCKSTATS
