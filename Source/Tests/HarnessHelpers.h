@@ -112,6 +112,8 @@ namespace FEX::HarnessHelper {
       if (MatchMask & 1) {
         CheckGPRs("XMM0_" + std::to_string(i), State1.xmm[i][0], State2.xmm[i][0]);
         CheckGPRs("XMM1_" + std::to_string(i), State1.xmm[i][1], State2.xmm[i][1]);
+        CheckGPRs("XMM2_" + std::to_string(i), State1.xmm[i][2], State2.xmm[i][2]);
+        CheckGPRs("XMM3_" + std::to_string(i), State1.xmm[i][3], State2.xmm[i][3]);
       }
     }
 
