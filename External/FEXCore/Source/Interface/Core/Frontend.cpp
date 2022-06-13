@@ -458,6 +458,10 @@ bool Decoder::NormalOp(FEXCore::X86Tables::X86InstInfo const *Info, uint16_t Op,
       DecodeInst->Flags |= DecodeFlags::GenSizeDstSize(DecodeFlags::SIZE_128BIT);
       DestSize = 16;
     }
+    else if (DstSizeFlag == FEXCore::X86Tables::InstFlags::SIZE_256BIT) {
+      DecodeInst->Flags |= DecodeFlags::GenSizeDstSize(DecodeFlags::SIZE_256BIT);
+      DestSize = 32;
+    }
     else if (HasNarrowingDisplacement &&
       (DstSizeFlag == FEXCore::X86Tables::InstFlags::SIZE_DEF ||
        DstSizeFlag == FEXCore::X86Tables::InstFlags::SIZE_64BITDEF)) {
@@ -488,6 +492,9 @@ bool Decoder::NormalOp(FEXCore::X86Tables::X86InstInfo const *Info, uint16_t Op,
     }
     else if (SrcSizeFlag == FEXCore::X86Tables::InstFlags::SIZE_128BIT) {
       DecodeInst->Flags |= DecodeFlags::GenSizeSrcSize(DecodeFlags::SIZE_128BIT);
+    }
+    else if (SrcSizeFlag == FEXCore::X86Tables::InstFlags::SIZE_256BIT) {
+      DecodeInst->Flags |= DecodeFlags::GenSizeSrcSize(DecodeFlags::SIZE_256BIT);
     }
     else if (HasNarrowingDisplacement &&
       (SrcSizeFlag == FEXCore::X86Tables::InstFlags::SIZE_DEF ||
