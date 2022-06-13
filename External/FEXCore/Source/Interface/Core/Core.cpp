@@ -184,6 +184,8 @@ namespace FEXCore::Context {
     for (int i = 0; i < 16; ++i) {
       NewThreadState.xmm[i][0] = 0xDEADBEEFULL;
       NewThreadState.xmm[i][1] = 0xBAD0DAD1ULL;
+      NewThreadState.xmm[i][2] = 0xDEADCAFEULL;
+      NewThreadState.xmm[i][3] = 0xBAD0CAD1ULL;
     }
     memset(NewThreadState.flags, 0, 32);
     NewThreadState.flags[1] = 1;
