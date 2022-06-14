@@ -38,6 +38,15 @@ void OpDispatchBuilder::MOVAPSOp(OpcodeArgs) {
   StoreResult(FPRClass, Op, Src, -1);
 }
 
+void OpDispatchBuilder::VMOVAPSOp(OpcodeArgs) {
+  // Dst is always completely modified with VMOVAPS (high lanes cleared in 128-bit case)
+  const uint8_t DstSize = 32;
+  const uint8_t SrcSize = Op->VEX_L ? 32 : 16;
+
+  OrderedNode *Src = LoadSource_WithOpSize(FPRClass, Op, Op->Src[0], SrcSize, Op->Flags, -1);
+  StoreResult_WithOpSize(FPRClass, Op, Op->Dest, Src, DstSize, -1);
+}
+
 void OpDispatchBuilder::MOVUPSOp(OpcodeArgs) {
   OrderedNode *Src = LoadSource(FPRClass, Op, Op->Src[0], Op->Flags, 1);
   StoreResult(FPRClass, Op, Src, 1);
