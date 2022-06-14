@@ -378,6 +378,9 @@ public:
   template<size_t ElementSize>
   void PSIGN(OpcodeArgs);
 
+  // AVX
+  void VMOVAPSOp(OpcodeArgs);
+
   // BMI1 Ops
   void ANDNBMIOp(OpcodeArgs);
   void BEXTRBMIOp(OpcodeArgs);
