@@ -184,6 +184,7 @@ struct DecodedInst {
   uint8_t LastEscapePrefix;
   bool DecodedModRM;
   bool DecodedSIB;
+  bool VEX_L;
 
   DecodedOperand Dest;
   DecodedOperand Src[3];
