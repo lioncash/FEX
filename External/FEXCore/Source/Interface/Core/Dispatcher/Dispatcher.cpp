@@ -291,7 +291,7 @@ static uint32_t ConvertSignalToError(int Signal, siginfo_t *HostSigInfo) {
 
 template <typename T>
 static void SetXStateInfo(T* xstate) {
-  auto* fpstate = state->fpstate;
+  auto* fpstate = &xstate->fpstate;
 
   fpstate->sw_reserved.magic1 = x86::fpx_sw_bytes::FP_XSTATE_MAGIC1;
   fpstate->sw_reserved.extended_size = sizeof(x86_64::xstate);
