@@ -259,7 +259,7 @@ struct FEX_PACKED GDBContextDefinition {
   uint32_t fctrl;
   uint32_t fstat;
   uint32_t dummies[6];
-  uint64_t xmm[16][2];
+  uint64_t xmm[16][4];
   uint32_t mxcsr;
 };
 

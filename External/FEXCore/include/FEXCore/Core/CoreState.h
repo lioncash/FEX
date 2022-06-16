@@ -14,7 +14,9 @@ namespace FEXCore::Core {
     uint64_t rip; ///< Current core's RIP. May not be entirely accurate while JIT is active
     uint64_t gregs[16];
     uint64_t : 64;
-    uint64_t xmm[16][2];
+    uint64_t : 64;
+    uint64_t : 64;
+    uint64_t xmm[16][4];
     uint16_t es, cs, ss, ds;
     uint64_t gs;
     uint64_t fs;
@@ -29,7 +31,7 @@ namespace FEXCore::Core {
     uint16_t FCW;
     uint16_t FTW;
   };
-  static_assert(offsetof(CPUState, xmm) % 16 == 0, "xmm needs to be 128bit aligned!");
+  static_assert(offsetof(CPUState, xmm) % 32 == 0, "xmm needs to be 256bit aligned!");
 
   struct InternalThreadState;
 
