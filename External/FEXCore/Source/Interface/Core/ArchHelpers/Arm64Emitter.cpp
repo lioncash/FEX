@@ -209,6 +209,7 @@ void Arm64Emitter::SpillStaticRegs(bool FPRs, uint32_t GPRSpillMask, uint32_t FP
     }
 
     if (FPRs) {
+      LogMan::Msg::IFmt("!!!!!!!!!!!! SPILLING STATIC REGS !!!!!!!!!!!\n\n\n");
       for (size_t i = 0; i < SRAFPR.size(); i+=2) {
         auto Reg1 = SRAFPR[i];
         auto Reg2 = SRAFPR[i+1];

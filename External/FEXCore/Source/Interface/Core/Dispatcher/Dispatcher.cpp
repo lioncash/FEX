@@ -158,8 +158,8 @@ void Dispatcher::RestoreThreadState(void *ucontext) {
             COPY_REG(RCX);
             COPY_REG(RSP);
 #undef COPY_REG
-        const auto *xstate = reinterpret_cast<FEXCore::x86_64::xstate*>(guest_uctx->uc_mcontext.fpregs);
-        const auto *fpstate = &xstate->fpstate;
+        const auto *fpstate = reinterpret_cast<FEXCore::x86_64::_libc_fpstate*>(guest_uctx->uc_mcontext.fpregs);
+        //const auto *fpstate = &xstate->fpstate;
 
         // Copy float registers
         memcpy(Frame->State.mm, fpstate->_st, sizeof(Frame->State.mm));
@@ -168,9 +168,9 @@ void Dispatcher::RestoreThreadState(void *ucontext) {
         for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
           memcpy(&Frame->State.xmm[i][0], &fpstate->_xmm[i], sizeof(__uint128_t));
         }
-        for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
+        /*for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
           memcpy(&Frame->State.xmm[i][2], &xstate->ymmh.ymmh_space[i], sizeof(__uint128_t));
-        }
+        }*/
 
         // FCW store default
         Frame->State.FCW = fpstate->fcw;
@@ -225,8 +225,8 @@ void Dispatcher::RestoreThreadState(void *ucontext) {
         COPY_REG(RSP);
 #undef COPY_REG
 
-        auto *xstate = reinterpret_cast<FEXCore::x86::xstate*>(guest_uctx->uc_mcontext.fpregs);
-        auto *fpstate = &xstate->fpstate;
+        auto *fpstate = reinterpret_cast<FEXCore::x86::_libc_fpstate*>(guest_uctx->uc_mcontext.fpregs);
+        //auto *fpstate = &xstate->fpstate;
 
         // Copy float registers
         for (size_t i = 0; i < 8; ++i) {
@@ -238,9 +238,9 @@ void Dispatcher::RestoreThreadState(void *ucontext) {
         for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
           memcpy(&fpstate->_xmm[i], &Frame->State.xmm[i][0], sizeof(__uint128_t));
         }
-        for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
+        /*for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
           memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm[i][2], sizeof(__uint128_t));
-        }
+        }*/
 
         // FCW store default
         Frame->State.FCW = fpstate->fcw;
@@ -402,8 +402,8 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
   if (GuestAction->sa_flags & SA_SIGINFO) {
     // Setup ucontext a bit
     if (Is64BitMode) {
-      NewGuestSP -= sizeof(FEXCore::x86_64::xstate);
-      NewGuestSP = AlignDown(NewGuestSP, alignof(FEXCore::x86_64::xstate));
+      NewGuestSP -= sizeof(FEXCore::x86_64::_libc_fpstate);
+      NewGuestSP = AlignDown(NewGuestSP, alignof(FEXCore::x86_64::_libc_fpstate));
       uint64_t FPStateLocation = NewGuestSP;
 
       NewGuestSP -= sizeof(FEXCore::x86_64::ucontext_t);
@@ -426,8 +426,8 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
 
       // Pointer to where the fpreg memory is
       guest_uctx->uc_mcontext.fpregs = reinterpret_cast<x86_64::_libc_fpstate*>(FPStateLocation);
-      auto *xstate = reinterpret_cast<x86_64::xstate*>(FPStateLocation);
-      SetXStateInfo(xstate);
+      auto *fpstate = reinterpret_cast<x86_64::_libc_fpstate*>(FPStateLocation);
+      //SetXStateInfo(xstate);
 
       guest_uctx->uc_mcontext.gregs[FEXCore::x86_64::FEX_REG_RIP] = Frame->State.rip;
       guest_uctx->uc_mcontext.gregs[FEXCore::x86_64::FEX_REG_EFL] = 0;
@@ -472,7 +472,7 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
       COPY_REG(RSP);
 #undef COPY_REG
 
-      auto *fpstate = &xstate->fpstate;
+     // auto *fpstate = &xstate->fpstate;
 
       // Copy float registers
       memcpy(fpstate->_st, Frame->State.mm, sizeof(Frame->State.mm));
@@ -481,9 +481,9 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
       for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
         memcpy(&fpstate->_xmm[i], &Frame->State.xmm[i][0], sizeof(__uint128_t));
       }
-      for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
+      /*for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
         memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm[i][2], sizeof(__uint128_t));
-      }
+      }*/
 
       // FCW store default
       fpstate->fcw = Frame->State.FCW;
@@ -508,8 +508,8 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
     else {
       ContextBackup->Flags |= ArchHelpers::Context::ContextFlags::CONTEXT_FLAG_32BIT;
 
-      NewGuestSP -= sizeof(FEXCore::x86::xstate);
-      NewGuestSP = AlignDown(NewGuestSP, alignof(FEXCore::x86::xstate));
+      NewGuestSP -= sizeof(FEXCore::x86::_libc_fpstate);
+      NewGuestSP = AlignDown(NewGuestSP, alignof(FEXCore::x86::_libc_fpstate));
       uint64_t FPStateLocation = NewGuestSP;
 
       NewGuestSP -= sizeof(FEXCore::x86::ucontext_t);
@@ -532,8 +532,8 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
 
       // Pointer to where the fpreg memory is
       guest_uctx->uc_mcontext.fpregs = static_cast<uint32_t>(FPStateLocation);
-      auto *xstate = reinterpret_cast<FEXCore::x86::xstate*>(FPStateLocation);
-      SetXStateInfo(xstate);
+      auto *fpstate = reinterpret_cast<FEXCore::x86::_libc_fpstate*>(FPStateLocation);
+      //SetXStateInfo(xstate);
 
       guest_uctx->uc_mcontext.gregs[FEXCore::x86::FEX_REG_GS] = Frame->State.gs;
       guest_uctx->uc_mcontext.gregs[FEXCore::x86::FEX_REG_FS] = Frame->State.fs;
@@ -567,7 +567,7 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
       COPY_REG(RSP);
 #undef COPY_REG
 
-      auto *fpstate = &xstate->fpstate;
+      //auto *fpstate = &xstate->fpstate;
 
       // Copy float registers
       for (size_t i = 0; i < 8; ++i) {
@@ -580,9 +580,9 @@ bool Dispatcher::HandleGuestSignal(int Signal, void *info, void *ucontext, Guest
       for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
         memcpy(&fpstate->_xmm[i], &Frame->State.xmm[i][0], sizeof(__uint128_t));
       }
-      for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
+      /*for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
         memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm[i][2], sizeof(__uint128_t));
-      }
+      }*/
 
       // FCW store default
       fpstate->fcw = Frame->State.FCW;

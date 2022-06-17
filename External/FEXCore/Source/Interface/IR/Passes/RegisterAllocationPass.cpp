@@ -581,7 +581,7 @@ namespace {
           auto reg = (Offset - beginGpr) / 8;
           return PhysicalRegister(GPRFixedClass, reg);
         } else if (Offset >= beginFpr && Offset < endFpr) {
-          auto reg = (Offset - beginFpr) / 32;
+          auto reg = (Offset - beginFpr) / FEXCore::Core::CPUState::XMM_SIZE;
           return PhysicalRegister(FPRFixedClass, reg);
         } else {
           LOGMAN_THROW_A_FMT(false, "Unexpected Offset {}", Offset);
@@ -601,28 +601,38 @@ namespace {
         auto beginFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]);
         auto endFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[16][0]);
 
+        LogMan::Msg::IFmt("GETSTATICMAPFROMOFFSET");
+        LogMan::Msg::IFmt("GPRSIZE: {}", GprSize);
+
         if (Offset >= beginGpr && Offset < endGpr) {
           auto reg = (Offset - beginGpr) / 8;
           return &StaticMaps[reg];
         } else if (Offset >= beginFpr && Offset < endFpr) {
-          auto reg = (Offset - beginFpr) / 32;
+          auto reg = (Offset - beginFpr) / FEXCore::Core::CPUState::XMM_SIZE;
+          LogMan::Msg::IFmt("STATIC_MAP INDEX: {}", GprSize + reg);
           return &StaticMaps[GprSize + reg];
         } else {
           LOGMAN_THROW_A_FMT(false, "Unexpected offset {}", Offset);
           return nullptr;
         }
+        LogMan::Msg::IFmt("\n\n");
     };
 
     // Get a StaticMap entry from reg and class
     const auto GetStaticMapFromReg = [&](IR::PhysicalRegister PhyReg) -> LiveRange** {
+      LogMan::Msg::IFmt("GETSTATICMAPFROMREG");
+      LogMan::Msg::IFmt("GPRSIZE: {}", GprSize);
+
       if (PhyReg.Class == GPRFixedClass.Val) {
         return &StaticMaps[PhyReg.Reg];
       } else if (PhyReg.Class == FPRFixedClass.Val) {
+        LogMan::Msg::IFmt("STATIC_MAP INDEX: {}", GprSize + PhyReg.Reg);
         return &StaticMaps[GprSize + PhyReg.Reg];
       } else {
         LOGMAN_THROW_A_FMT(false, "Unexpected Class {}", PhyReg.Class);
         return nullptr;
       }
+      LogMan::Msg::IFmt("\n\n");
     };
 
     // First pass: Mark pre-writes

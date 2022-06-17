@@ -103,7 +103,9 @@ uint64_t FPRBit(uint32_t Offset, uint32_t Size) {
 
   auto begin = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]);
 
-  auto regn = (Offset - begin)/16;
+  LogMan::Msg::IFmt("\n\nFPRBIT OFFSET: {}\n\n", Offset);
+
+  auto regn = (Offset - begin) / FEXCore::Core::CPUState::XMM_SIZE;
   auto bitn = regn * 3;
 
   if (!IsTrackedWriteFPR(Offset, Size))

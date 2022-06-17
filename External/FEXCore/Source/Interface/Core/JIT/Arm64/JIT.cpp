@@ -566,10 +566,12 @@ std::pair<aarch64::Register, aarch64::Register> Arm64JITCore::GetSrcPair<Arm64JI
 aarch64::VRegister Arm64JITCore::GetSrc(IR::NodeID Node) const {
   auto Reg = GetPhys(Node);
 
+  LogMan::Msg::IFmt("GETSRC");
   if (Reg.Class == IR::FPRFixedClass.Val) {
-    LogMan::Msg::IFmt("FIXED SRC: {}", Reg.Reg);
+    LogMan::Msg::IFmt("FIXED FPR SRC: {}\n\n", Reg.Reg);
     return SRAFPR[Reg.Reg];
   } else if (Reg.Class == IR::FPRClass.Val) {
+    LogMan::Msg::IFmt("FPR SRC: {}\n\n", Reg.Reg);
     return RAFPR[Reg.Reg];
   } else {
     LOGMAN_THROW_A_FMT(false, "Unexpected Class: {}", Reg.Class);
@@ -581,10 +583,12 @@ aarch64::VRegister Arm64JITCore::GetSrc(IR::NodeID Node) const {
 aarch64::VRegister Arm64JITCore::GetDst(IR::NodeID Node) const {
   auto Reg = GetPhys(Node);
 
+  LogMan::Msg::IFmt("GETDST");
   if (Reg.Class == IR::FPRFixedClass.Val) {
-    LogMan::Msg::IFmt("FIXED DST: {}", Reg.Reg);
+    LogMan::Msg::IFmt("FIXED FPR DST: {}\n\n", Reg.Reg);
     return SRAFPR[Reg.Reg];
   } else if (Reg.Class == IR::FPRClass.Val) {
+    LogMan::Msg::IFmt("FPR DST: {}\n\n", Reg.Reg);
     return RAFPR[Reg.Reg];
   } else {
     LOGMAN_THROW_A_FMT(false, "Unexpected Class: {}", Reg.Class);

@@ -115,6 +115,7 @@ private:
 }
 
 int main(int argc, char **argv, char **const envp) {
+  setvbuf(stdout, nullptr, _IONBF, 0);
   LogMan::Throw::InstallHandler(AssertHandler);
   LogMan::Msg::InstallHandler(MsgHandler);
   FEXCore::Config::Initialize();

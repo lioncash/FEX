@@ -135,7 +135,7 @@ DEF_OP(LoadRegister) {
         break;
     }
   } else if (Op->Class == IR::FPRClass) {
-    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / 32;
+    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / Core::CPUState::XMM_SIZE;
     auto regOffs = Op->Offset & 15;
 
     LOGMAN_THROW_A_FMT(regId < SRAFPR.size(), "out of range regId");
@@ -144,10 +144,13 @@ DEF_OP(LoadRegister) {
     LogMan::Msg::IFmt("UNSCALED OFFSET {}", Op->Offset);
     LogMan::Msg::IFmt("UNSCALED ID {}", Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]));
     LogMan::Msg::IFmt("REG OFFSET: {}", regOffs);
-    LogMan::Msg::IFmt("REG ID: {}\n\n", regId);
+    LogMan::Msg::IFmt("REG ID: {}", regId);
 
     auto guest = SRAFPR[regId];
     auto host = GetSrc(Node);
+
+    LogMan::Msg::IFmt("GUEST REG: {}", guest.GetCode());
+    LogMan::Msg::IFmt("HOST REG: {}\n\n", host.GetCode());
 
     switch(Op->Header.Size) {
       case 1:
@@ -225,7 +228,7 @@ DEF_OP(StoreRegister) {
         break;
     }
   } else if (Op->Class == IR::FPRClass) {
-    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / 32;
+    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / Core::CPUState::XMM_SIZE;
     auto regOffs = Op->Offset & 15;
 
     LOGMAN_THROW_A_FMT(regId < SRAFPR.size(), "regId out of range");
@@ -234,10 +237,13 @@ DEF_OP(StoreRegister) {
     LogMan::Msg::IFmt("UNSCALED OFFSET {}", Op->Offset);
     LogMan::Msg::IFmt("UNSCALED ID {}", Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]));
     LogMan::Msg::IFmt("REG OFFSET: {}", regOffs);
-    LogMan::Msg::IFmt("REG ID: {}\n\n", regId);
+    LogMan::Msg::IFmt("REG ID: {}", regId);
 
     auto guest = SRAFPR[regId];
     auto host = GetSrc(Op->Value.ID());
+
+    LogMan::Msg::IFmt("GUEST REG: {}", guest.GetCode());
+    LogMan::Msg::IFmt("HOST REG: {}", host.GetCode());
 
     switch(Op->Header.Size) {
       case 1:
@@ -261,13 +267,18 @@ DEF_OP(StoreRegister) {
 
       case 16:
         LOGMAN_THROW_A_FMT(regOffs == 0, "unexpected regOffs");
-        if (guest.GetCode() != host.GetCode())
+        if (guest.GetCode() != host.GetCode()) {
           mov(guest.Q(), host.Q());
+        } else {
+          LogMan::Msg::IFmt("SAME GUEST AND HOST CODE");
+        }
         break;
     }
   } else {
     LOGMAN_THROW_A_FMT(false, "Unhandled Op->Class {}", Op->Class);
   }
+
+  LogMan::Msg::IFmt("\n\n");
 }
 
 

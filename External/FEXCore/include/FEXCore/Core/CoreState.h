@@ -30,6 +30,8 @@ namespace FEXCore::Core {
     } gdt[32];
     uint16_t FCW;
     uint16_t FTW;
+
+    static constexpr size_t XMM_SIZE = 32;
   };
   static_assert(offsetof(CPUState, xmm) % 32 == 0, "xmm needs to be 256bit aligned!");
 
