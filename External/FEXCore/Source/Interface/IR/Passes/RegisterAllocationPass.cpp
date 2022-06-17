@@ -581,7 +581,7 @@ namespace {
           auto reg = (Offset - beginGpr) / 8;
           return PhysicalRegister(GPRFixedClass, reg);
         } else if (Offset >= beginFpr && Offset < endFpr) {
-          auto reg = (Offset - beginFpr) / 16;
+          auto reg = (Offset - beginFpr) / 32;
           return PhysicalRegister(FPRFixedClass, reg);
         } else {
           LOGMAN_THROW_A_FMT(false, "Unexpected Offset {}", Offset);
@@ -605,7 +605,7 @@ namespace {
           auto reg = (Offset - beginGpr) / 8;
           return &StaticMaps[reg];
         } else if (Offset >= beginFpr && Offset < endFpr) {
-          auto reg = (Offset - beginFpr) / 16;
+          auto reg = (Offset - beginFpr) / 32;
           return &StaticMaps[GprSize + reg];
         } else {
           LOGMAN_THROW_A_FMT(false, "Unexpected offset {}", Offset);

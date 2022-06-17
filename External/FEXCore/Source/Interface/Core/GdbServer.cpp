@@ -382,7 +382,7 @@ GdbServer::HandledPacketType GdbServer::readReg(const std::string& packet) {
   }
   else if (addr >= offsetof(GDBContextDefinition, xmm[0][0]) &&
            addr < offsetof(GDBContextDefinition, xmm[16][0])) {
-    return {encodeHex((unsigned char *)(&state.xmm[(addr - offsetof(GDBContextDefinition, xmm[0][0])) / 16][0]), 16), HandledPacketType::TYPE_ACK};
+    return {encodeHex((unsigned char *)(&state.xmm[(addr - offsetof(GDBContextDefinition, xmm[0][0])) / 32][0]), 32), HandledPacketType::TYPE_ACK};
   }
   else if (addr == offsetof(GDBContextDefinition, mxcsr)) {
     uint32_t Empty{};

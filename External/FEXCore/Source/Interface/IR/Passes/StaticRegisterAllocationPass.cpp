@@ -43,7 +43,8 @@ bool IsStaticAllocFpr(uint32_t Offset, RegisterClassType Class, bool AllowGpr) {
   const auto end = offsetof(FEXCore::Core::CPUState, xmm[16][0]);
 
   if (Offset >= begin && Offset < end) {
-    const auto reg = (Offset - begin) / 16;
+    const auto reg = (Offset - begin) / 32;
+    LogMan::Msg::IFmt("IS STATIC ALLOC FPR REG {}", reg);
     LOGMAN_THROW_A_FMT(Class == IR::FPRClass || (AllowGpr && Class == IR::GPRClass), "unexpected Class {}, AllowGpr {}", Class, AllowGpr);
 
     // 0..15 -> 16 in total

@@ -567,6 +567,7 @@ aarch64::VRegister Arm64JITCore::GetSrc(IR::NodeID Node) const {
   auto Reg = GetPhys(Node);
 
   if (Reg.Class == IR::FPRFixedClass.Val) {
+    LogMan::Msg::IFmt("FIXED SRC: {}", Reg.Reg);
     return SRAFPR[Reg.Reg];
   } else if (Reg.Class == IR::FPRClass.Val) {
     return RAFPR[Reg.Reg];
@@ -581,6 +582,7 @@ aarch64::VRegister Arm64JITCore::GetDst(IR::NodeID Node) const {
   auto Reg = GetPhys(Node);
 
   if (Reg.Class == IR::FPRFixedClass.Val) {
+    LogMan::Msg::IFmt("FIXED DST: {}", Reg.Reg);
     return SRAFPR[Reg.Reg];
   } else if (Reg.Class == IR::FPRClass.Val) {
     return RAFPR[Reg.Reg];
