@@ -135,10 +135,16 @@ DEF_OP(LoadRegister) {
         break;
     }
   } else if (Op->Class == IR::FPRClass) {
-    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / 16;
+    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / 32;
     auto regOffs = Op->Offset & 15;
 
     LOGMAN_THROW_A_FMT(regId < SRAFPR.size(), "out of range regId");
+
+    LogMan::Msg::IFmt("LOAD REGISTER OP");
+    LogMan::Msg::IFmt("UNSCALED OFFSET {}", Op->Offset);
+    LogMan::Msg::IFmt("UNSCALED ID {}", Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]));
+    LogMan::Msg::IFmt("REG OFFSET: {}", regOffs);
+    LogMan::Msg::IFmt("REG ID: {}\n\n", regId);
 
     auto guest = SRAFPR[regId];
     auto host = GetSrc(Node);
@@ -219,10 +225,16 @@ DEF_OP(StoreRegister) {
         break;
     }
   } else if (Op->Class == IR::FPRClass) {
-    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / 16;
+    auto regId = (Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0])) / 32;
     auto regOffs = Op->Offset & 15;
 
     LOGMAN_THROW_A_FMT(regId < SRAFPR.size(), "regId out of range");
+
+    LogMan::Msg::IFmt("STORE REGISTER OP");
+    LogMan::Msg::IFmt("UNSCALED OFFSET {}", Op->Offset);
+    LogMan::Msg::IFmt("UNSCALED ID {}", Op->Offset - offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]));
+    LogMan::Msg::IFmt("REG OFFSET: {}", regOffs);
+    LogMan::Msg::IFmt("REG ID: {}\n\n", regId);
 
     auto guest = SRAFPR[regId];
     auto host = GetSrc(Op->Value.ID());

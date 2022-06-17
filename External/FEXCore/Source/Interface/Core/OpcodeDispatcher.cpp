@@ -4783,6 +4783,7 @@ void OpDispatchBuilder::StoreResult_WithOpSize(FEXCore::IR::RegisterClassType Cl
       _StoreContext(OpSize, Class, Src, offsetof(FEXCore::Core::CPUState, mm[gpr - FEXCore::X86State::REG_MM_0]));
     }
     else if (gpr >= FEXCore::X86State::REG_XMM_0) {
+      LogMan::Msg::IFmt("Storing XMM at offset: {}", offsetof(FEXCore::Core::CPUState, xmm[gpr - FEXCore::X86State::REG_XMM_0][Operand.Data.GPR.HighBits ? 1 : 0]));
       _StoreContext(OpSize, Class, Src, offsetof(FEXCore::Core::CPUState, xmm[gpr - FEXCore::X86State::REG_XMM_0][Operand.Data.GPR.HighBits ? 1 : 0]));
     }
     else {
@@ -4919,7 +4920,7 @@ void OpDispatchBuilder::ResetWorkingList() {
   JumpTargets.clear();
   BlockSetRIP = false;
   DecodeFailure = false;
-  ShouldDump = false;
+  ShouldDump = true;
   CurrentCodeBlock = nullptr;
 }
 

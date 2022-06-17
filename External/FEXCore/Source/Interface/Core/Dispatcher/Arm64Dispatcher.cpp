@@ -571,6 +571,7 @@ void Arm64Dispatcher::SpillSRA(void *ucontext, uint32_t IgnoreMask) {
     ThreadState->CurrentFrame->State.gregs[i] = ArchHelpers::Context::GetArmReg(ucontext, SRA64[i].GetCode());
   }
 
+  LogMan::Msg::IFmt("SPILLING SRA XMM");
   for(int i = 0; i < SRAFPR.size(); i++) {
     auto FPR = ArchHelpers::Context::GetArmFPR(ucontext, SRAFPR[i].GetCode());
     memcpy(&ThreadState->CurrentFrame->State.xmm[i][0], &FPR, sizeof(__uint128_t));
