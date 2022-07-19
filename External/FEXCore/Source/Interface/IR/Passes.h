@@ -12,7 +12,7 @@ class RegisterAllocationPass;
 class RegisterAllocationData;
 
 std::unique_ptr<FEXCore::IR::Pass> CreateConstProp(bool InlineConstants, bool SupportsTSOImm9);
-std::unique_ptr<FEXCore::IR::Pass> CreateContextLoadStoreElimination();
+std::unique_ptr<FEXCore::IR::Pass> CreateContextLoadStoreElimination(bool SupportsAVX);
 std::unique_ptr<FEXCore::IR::Pass> CreateSyscallOptimization();
 std::unique_ptr<FEXCore::IR::Pass> CreateDeadFlagCalculationEliminination();
 std::unique_ptr<FEXCore::IR::Pass> CreateDeadStoreElimination();

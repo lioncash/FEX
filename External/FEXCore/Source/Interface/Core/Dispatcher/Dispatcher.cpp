@@ -168,11 +168,11 @@ void Dispatcher::RestoreThreadState(FEXCore::Core::InternalThreadState *Thread, 
 
         // Copy low lanes and high lanes for XMM registers
         for (size_t i = 0; i < Core::CPUState::NUM_XMMS; i++) {
-          memcpy(&Frame->State.xmm[i][0], &fpstate->_xmm[i], sizeof(__uint128_t));
+          memcpy(&Frame->State.xmm.avx.data[i][0], &fpstate->_xmm[i], sizeof(__uint128_t));
         }
         if (IsAVXEnabled) {
           for (size_t i = 0; i < Core::CPUState::NUM_XMMS; i++) {
-            memcpy(&Frame->State.xmm[i][2], &xstate->ymmh.ymmh_space[i], sizeof(__uint128_t));
+            memcpy(&Frame->State.xmm.avx.data[i][2], &xstate->ymmh.ymmh_space[i], sizeof(__uint128_t));
           }
         }
 
@@ -239,11 +239,11 @@ void Dispatcher::RestoreThreadState(FEXCore::Core::InternalThreadState *Thread, 
 
         // Extended XMM state
         for (size_t i = 0; i < Core::CPUState::NUM_XMMS; i++) {
-          memcpy(&fpstate->_xmm[i], &Frame->State.xmm[i][0], sizeof(__uint128_t));
+          memcpy(&fpstate->_xmm[i], &Frame->State.xmm.avx.data[i][0], sizeof(__uint128_t));
         }
         if (IsAVXEnabled) {
           for (size_t i = 0; i < Core::CPUState::NUM_XMMS; i++) {
-            memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm[i][2], sizeof(__uint128_t));
+            memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm.avx.data[i][2], sizeof(__uint128_t));
           }
         }
 
@@ -497,11 +497,11 @@ bool Dispatcher::HandleGuestSignal(FEXCore::Core::InternalThreadState *Thread, i
 
       // Copy low lanes and high lanes of XMM registers.
       for (size_t i = 0; i < Core::CPUState::NUM_XMMS; i++) {
-        memcpy(&fpstate->_xmm[i], &Frame->State.xmm[i][0], sizeof(__uint128_t));
+        memcpy(&fpstate->_xmm[i], &Frame->State.xmm.avx.data[i][0], sizeof(__uint128_t));
       }
       if (IsAVXEnabled) {
         for (size_t i = 0; i < Core::CPUState::NUM_XMMS; i++) {
-          memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm[i][2], sizeof(__uint128_t));
+          memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm.avx.data[i][2], sizeof(__uint128_t));
         }
       }
 
@@ -602,12 +602,12 @@ bool Dispatcher::HandleGuestSignal(FEXCore::Core::InternalThreadState *Thread, i
 
       // Extended XMM state
       fpstate->status = FEXCore::x86::fpstate_magic::MAGIC_XFPSTATE;
-      for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
-        memcpy(&fpstate->_xmm[i], &Frame->State.xmm[i][0], sizeof(__uint128_t));
+      for (size_t i = 0; i < std::size(Frame->State.xmm.avx.data); i++) {
+        memcpy(&fpstate->_xmm[i], &Frame->State.xmm.avx.data[i][0], sizeof(__uint128_t));
       }
       if (IsAVXEnabled) {
-        for (size_t i = 0; i < std::size(Frame->State.xmm); i++) {
-          memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm[i][2], sizeof(__uint128_t));
+        for (size_t i = 0; i < std::size(Frame->State.xmm.avx.data); i++) {
+          memcpy(&xstate->ymmh.ymmh_space[i], &Frame->State.xmm.avx.data[i][2], sizeof(__uint128_t));
         }
       }
 
@@ -699,7 +699,7 @@ bool Dispatcher::HandleGuestSignal(FEXCore::Core::InternalThreadState *Thread, i
   // The guest starts its signal frame with a zero initialized FPU
   // Set that up now. Little bit costly but it's a requirement
   // This state will be restored on rt_sigreturn
-  memset(Frame->State.xmm, 0, sizeof(Frame->State.xmm));
+  memset(Frame->State.xmm.avx.data, 0, sizeof(Frame->State.xmm));
   memset(Frame->State.mm, 0, sizeof(Frame->State.mm));
   Frame->State.FCW = 0x37F;
   Frame->State.FTW = 0xFFFF;

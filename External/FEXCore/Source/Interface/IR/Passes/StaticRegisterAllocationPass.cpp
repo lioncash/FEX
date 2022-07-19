@@ -39,8 +39,8 @@ bool IsStaticAllocGpr(uint32_t Offset, RegisterClassType Class) {
 }
 
 bool IsStaticAllocFpr(uint32_t Offset, RegisterClassType Class, bool AllowGpr) {
-  const auto begin = offsetof(FEXCore::Core::CPUState, xmm[0][0]);
-  const auto end = offsetof(FEXCore::Core::CPUState, xmm[16][0]);
+  const auto begin = offsetof(FEXCore::Core::CPUState, xmm.avx.data[0][0]);
+  const auto end = offsetof(FEXCore::Core::CPUState, xmm.avx.data[16][0]);
 
   if (Offset >= begin && Offset < end) {
     const auto reg = (Offset - begin) / Core::CPUState::XMM_REG_SIZE;

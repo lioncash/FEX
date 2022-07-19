@@ -137,7 +137,7 @@ DEF_OP(LoadRegister) {
         break;
     }
   } else if (Op->Class == IR::FPRClass) {
-    auto regId = (Op->Offset - offsetof(Core::CpuStateFrame, State.xmm[0][0])) / Core::CPUState::XMM_REG_SIZE;
+    auto regId = (Op->Offset - offsetof(Core::CpuStateFrame, State.xmm.avx.data[0][0])) / Core::CPUState::XMM_REG_SIZE;
     auto regOffs = Op->Offset & 15;
 
     LOGMAN_THROW_A_FMT(regId < SRAFPR.size(), "out of range regId");
@@ -221,7 +221,7 @@ DEF_OP(StoreRegister) {
         break;
     }
   } else if (Op->Class == IR::FPRClass) {
-    auto regId = (Op->Offset - offsetof(Core::CpuStateFrame, State.xmm[0][0])) / Core::CPUState::XMM_REG_SIZE;
+    auto regId = (Op->Offset - offsetof(Core::CpuStateFrame, State.xmm.avx.data[0][0])) / Core::CPUState::XMM_REG_SIZE;
     auto regOffs = Op->Offset & 15;
 
     LOGMAN_THROW_A_FMT(regId < SRAFPR.size(), "regId out of range");

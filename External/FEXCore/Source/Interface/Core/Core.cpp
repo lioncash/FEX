@@ -187,7 +187,7 @@ namespace FEXCore::Context {
       greg = 0;
     }
 
-    for (auto& xmm : NewThreadState.xmm) {
+    for (auto& xmm : NewThreadState.xmm.avx.data) {
       xmm[0] = 0xDEADBEEFULL;
       xmm[1] = 0xBAD0DAD1ULL;
       xmm[2] = 0xDEADCAFEULL;

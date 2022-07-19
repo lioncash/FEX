@@ -4641,7 +4641,7 @@ OrderedNode *OpDispatchBuilder::LoadSource_WithOpSize(FEXCore::IR::RegisterClass
       Src = _LoadContext(OpSize, FPRClass, offsetof(FEXCore::Core::CPUState, mm[gpr - FEXCore::X86State::REG_MM_0]));
     }
     else if (gpr >= FEXCore::X86State::REG_XMM_0) {
-      Src = _LoadContext(OpSize, FPRClass, offsetof(FEXCore::Core::CPUState, xmm[gpr - FEXCore::X86State::REG_XMM_0][Operand.Data.GPR.HighBits ? 1 : 0]));
+      Src = _LoadContext(OpSize, FPRClass, offsetof(FEXCore::Core::CPUState, xmm.avx.data[gpr - FEXCore::X86State::REG_XMM_0][Operand.Data.GPR.HighBits ? 1 : 0]));
     }
     else {
       Src = _LoadContext(OpSize, GPRClass, offsetof(FEXCore::Core::CPUState, gregs[gpr]) + (Operand.Data.GPR.HighBits ? 1 : 0));
@@ -4783,7 +4783,7 @@ void OpDispatchBuilder::StoreResult_WithOpSize(FEXCore::IR::RegisterClassType Cl
       _StoreContext(OpSize, Class, Src, offsetof(FEXCore::Core::CPUState, mm[gpr - FEXCore::X86State::REG_MM_0]));
     }
     else if (gpr >= FEXCore::X86State::REG_XMM_0) {
-      _StoreContext(OpSize, Class, Src, offsetof(FEXCore::Core::CPUState, xmm[gpr - FEXCore::X86State::REG_XMM_0][Operand.Data.GPR.HighBits ? 1 : 0]));
+      _StoreContext(OpSize, Class, Src, offsetof(FEXCore::Core::CPUState, xmm.avx.data[gpr - FEXCore::X86State::REG_XMM_0][Operand.Data.GPR.HighBits ? 1 : 0]));
     }
     else {
       if (GPRSize == 8 && OpSize == 4) {

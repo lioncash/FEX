@@ -20,7 +20,7 @@ void PassManager::AddDefaultPasses(FEXCore::Context::Context *ctx, bool InlineCo
   FEX_CONFIG_OPT(DisablePasses, O0);
 
   if (!DisablePasses()) {
-    InsertPass(CreateContextLoadStoreElimination());
+    InsertPass(CreateContextLoadStoreElimination(ctx->HostFeatures.SupportsAVX));
 
     if (Is64BitMode()) {
       // This needs to run after RCLSE

@@ -11,12 +11,27 @@
 
 namespace FEXCore::Core {
   struct FEX_PACKED CPUState {
+    // Allows more efficient handling of the register
+    // file in the event AVX is not supported.
+    union XMMRegs {
+      struct AVX {
+        uint64_t data[16][4];
+      };
+      struct SSE {
+        uint64_t data[16][2];
+        uint64_t pad[16][2];
+      };
+
+      AVX avx;
+      SSE sse;
+    };
+
     uint64_t rip; ///< Current core's RIP. May not be entirely accurate while JIT is active
     uint64_t gregs[16];
     uint16_t es, cs, ss, ds;
     uint64_t gs;
     uint64_t fs;
-    uint64_t xmm[16][4];
+    XMMRegs xmm;
     uint8_t flags[48];
     uint64_t mm[8][2];
 
@@ -30,7 +45,8 @@ namespace FEXCore::Core {
     static constexpr size_t FLAG_SIZE = sizeof(flags[0]);
     static constexpr size_t GDT_SIZE = sizeof(gdt[0]);
     static constexpr size_t GPR_REG_SIZE = sizeof(gregs[0]);
-    static constexpr size_t XMM_REG_SIZE = sizeof(xmm[0]);
+    static constexpr size_t XMM_REG_SIZE = sizeof(xmm.avx.data[0]);
+    static constexpr size_t XMM_SSE_REG_SIZE = XMM_REG_SIZE / 2;
     static constexpr size_t MM_REG_SIZE = sizeof(mm[0]);
 
     // Only the first 32 bits are defined.

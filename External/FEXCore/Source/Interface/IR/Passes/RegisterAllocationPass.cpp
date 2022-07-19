@@ -573,8 +573,8 @@ namespace {
         auto beginGpr = offsetof(FEXCore::Core::CpuStateFrame, State.gregs[0]);
         auto endGpr = offsetof(FEXCore::Core::CpuStateFrame, State.gregs[16]);
 
-        auto beginFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]);
-        auto endFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[16][0]);
+        auto beginFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[0][0]);
+        auto endFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[16][0]);
 
         if (Offset >= beginGpr && Offset < endGpr) {
           auto reg = (Offset - beginGpr) / Core::CPUState::GPR_REG_SIZE;
@@ -597,8 +597,8 @@ namespace {
         auto beginGpr = offsetof(FEXCore::Core::CpuStateFrame, State.gregs[0]);
         auto endGpr = offsetof(FEXCore::Core::CpuStateFrame, State.gregs[16]);
 
-        auto beginFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]);
-        auto endFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[16][0]);
+        auto beginFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[0][0]);
+        auto endFpr = offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[16][0]);
 
         if (Offset >= beginGpr && Offset < endGpr) {
           auto reg = (Offset - beginGpr) / Core::CPUState::GPR_REG_SIZE;

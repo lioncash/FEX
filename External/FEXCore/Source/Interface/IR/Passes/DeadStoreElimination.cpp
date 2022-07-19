@@ -75,9 +75,8 @@ struct FPRInfo {
 };
 
 bool IsFPR(uint32_t Offset) {
-
-  auto begin = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[0][0]);
-  auto end = offsetof(FEXCore::Core::CpuStateFrame, State.xmm[16][0]);
+  auto begin = offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[0][0]);
+  auto end = offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[16][0]);
 
   if (Offset < begin || Offset >= end)
     return false;
@@ -101,7 +100,7 @@ uint64_t FPRBit(uint32_t Offset, uint32_t Size) {
     return 0;
   }
 
-  auto begin = offsetof(Core::CpuStateFrame, State.xmm[0][0]);
+  auto begin = offsetof(Core::CpuStateFrame, State.xmm.avx.data[0][0]);
 
   auto regn = (Offset - begin) / Core::CPUState::XMM_REG_SIZE;
   auto bitn = regn * 3;

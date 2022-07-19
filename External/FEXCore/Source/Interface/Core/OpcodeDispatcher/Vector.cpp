@@ -441,9 +441,9 @@ void OpDispatchBuilder::MOVQOp(OpcodeArgs) {
   if (Op->Dest.IsGPR()) {
     const auto gpr = Op->Dest.Data.GPR.GPR;
 
-    _StoreContext(8, FPRClass, Src, offsetof(FEXCore::Core::CPUState, xmm[gpr - FEXCore::X86State::REG_XMM_0][0]));
+    _StoreContext(8, FPRClass, Src, offsetof(FEXCore::Core::CPUState, xmm.avx.data[gpr - FEXCore::X86State::REG_XMM_0][0]));
     auto Const = _Constant(0);
-    _StoreContext(8, GPRClass, Const, offsetof(FEXCore::Core::CPUState, xmm[gpr - FEXCore::X86State::REG_XMM_0][1]));
+    _StoreContext(8, GPRClass, Const, offsetof(FEXCore::Core::CPUState, xmm.avx.data[gpr - FEXCore::X86State::REG_XMM_0][1]));
   }
   else {
     // This is simple, just store the result
@@ -1393,7 +1393,7 @@ void OpDispatchBuilder::FXSaveOp(OpcodeArgs) {
   unsigned NumRegs = CTX->Config.Is64BitMode ? 16 : 8;
 
   for (unsigned i = 0; i < NumRegs; ++i) {
-    OrderedNode *XMMReg = _LoadContext(16, FPRClass, offsetof(FEXCore::Core::CPUState, xmm[i]));
+    OrderedNode *XMMReg = _LoadContext(16, FPRClass, offsetof(FEXCore::Core::CPUState, xmm.avx.data[i]));
     OrderedNode *MemLocation = _Add(Mem, _Constant(i * 16 + 160));
 
     _StoreMem(FPRClass, 16, MemLocation, XMMReg, 16);
@@ -1444,7 +1444,7 @@ void OpDispatchBuilder::FXRStoreOp(OpcodeArgs) {
   for (unsigned i = 0; i < NumRegs; ++i) {
     OrderedNode *MemLocation = _Add(Mem, _Constant(i * 16 + 160));
     auto XMMReg = _LoadMem(FPRClass, 16, MemLocation, 16);
-    _StoreContext(16, FPRClass, XMMReg, offsetof(FEXCore::Core::CPUState, xmm[i]));
+    _StoreContext(16, FPRClass, XMMReg, offsetof(FEXCore::Core::CPUState, xmm.avx.data[i]));
   }
 }
 
@@ -1591,7 +1591,7 @@ void OpDispatchBuilder::MOVQ2DQ(OpcodeArgs) {
   // This instruction is a bit special in that if the source is MMX then it zexts to 128bit
   if constexpr (ToXMM) {
     Src = _VMov(16, Src);
-    _StoreContext(16, FPRClass, Src, offsetof(FEXCore::Core::CPUState, xmm[Op->Dest.Data.GPR.GPR - FEXCore::X86State::REG_XMM_0][0]));
+    _StoreContext(16, FPRClass, Src, offsetof(FEXCore::Core::CPUState, xmm.avx.data[Op->Dest.Data.GPR.GPR - FEXCore::X86State::REG_XMM_0][0]));
   }
   else {
     // This is simple, just store the result
@@ -2356,7 +2356,7 @@ void OpDispatchBuilder::VectorVariableBlend(OpcodeArgs) {
   OrderedNode *Src = LoadSource(FPRClass, Op, Op->Src[0], Op->Flags, -1);
 
   // The mask is hardcoded to be xmm0 in this instruction
-  OrderedNode *Mask = _LoadContext(16, FPRClass, offsetof(FEXCore::Core::CPUState, xmm[0]));
+  OrderedNode *Mask = _LoadContext(16, FPRClass, offsetof(FEXCore::Core::CPUState, xmm.avx.data[0]));
   // Each element is selected by the high bit of that element size
   // Dest[ElementIdx] = Xmm0[ElementIndex][HighBit] ? Src : Dest;
   //
