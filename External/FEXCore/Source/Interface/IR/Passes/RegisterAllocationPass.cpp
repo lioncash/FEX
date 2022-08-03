@@ -88,6 +88,8 @@ namespace {
     IR::OrderedNode *SpilledNode;
   };
 
+  RegisterClassType GetRegClassFromNode(const IRListView *IR, const IROp_Header *IROp);
+
   struct RegisterGraph {
     IR::RegisterAllocationData::UniquePtr AllocData;
     RegisterSet Set;
@@ -96,9 +98,65 @@ namespace {
     std::vector<SpillStackUnit> SpillStack;
     std::unordered_map<IR::NodeID, std::unordered_set<IR::NodeID>> BlockPredecessors;
     std::unordered_map<IR::NodeID, std::unordered_set<IR::NodeID>> VisitedNodePredecessors;
-  };
 
-  void ResetRegisterGraph(RegisterGraph *Graph, uint64_t NodeCount);
+    void Reset(uint64_t NewNodeCount) {
+      NewNodeCount = FEXCore::AlignUp(NewNodeCount, REGISTER_NODES_PER_PAGE);
+
+      // Clear to free the Bucketlists which have unique_ptrs
+      // Resize to our correct size
+      Nodes.clear();
+      Nodes.resize(NewNodeCount);
+
+      VisitedNodePredecessors.clear();
+      AllocData = RegisterAllocationData::Create(NewNodeCount);
+      NodeCount = NewNodeCount;
+    }
+
+    void SetNodeClass(IR::NodeID Node, IR::RegisterClassType Class) {
+      AllocData->Map[Node.Value].Class = Class.Val;
+    }
+
+    void SetNodePartner(IR::NodeID Node, IR::NodeID Partner) {
+      Nodes[Node.Value].Head.PhiPartner = &Nodes[Partner.Value];
+    }
+
+    void AllocatePhysicalRegisters(IR::RegisterClassType Class, uint32_t Count) {
+      Set.Classes[Class].CountMask = (1U << Count) - 1;
+      Set.Classes[Class].PhysicalCount = Count;
+    }
+
+    void SetConflict(PhysicalRegister RegAndClass, PhysicalRegister ConflictRegAndClass) {
+      const uint32_t Index = (ConflictRegAndClass.Class << 8) | RegAndClass.Raw;
+      Set.Conflicts[Index] |= 1U << ConflictRegAndClass.Reg;
+    }
+
+    uint32_t GetConflicts(PhysicalRegister RegAndClass, RegisterClassType ConflictClass) const {
+      const uint32_t Index = (ConflictClass.Val << 8) | RegAndClass.Raw;
+      return Set.Conflicts[Index];
+    }
+
+    void VirtualAddRegisterConflict(RegisterClassType ClassConflict, uint32_t RegConflict, RegisterClassType Class, uint32_t Reg) {
+      const auto RegAndClass = PhysicalRegister(Class, Reg);
+      const auto RegAndClassConflict = PhysicalRegister(ClassConflict, RegConflict);
+
+      // Conflict must go both ways
+      SetConflict(RegAndClass, RegAndClassConflict);
+      SetConflict(RegAndClassConflict, RegAndClass);
+    }
+
+    // Walk the IR and set the node classes
+    void FindNodeClasses(const IRListView *IR) {
+      for (auto [CodeNode, IROp] : IR->GetAllCode()) {
+        // If the destination hasn't yet been set then set it now
+        if (IROp->HasDest) {
+          const auto ID = IR->GetID(CodeNode);
+          AllocData->Map[ID.Value] = PhysicalRegister(GetRegClassFromNode(IR, IROp), INVALID_REG);
+        } else {
+          //AllocData->Map[IR->GetID(CodeNode)] = PhysicalRegister::Invalid();
+        }
+      }
+    }
+  };
 
   RegisterGraph *AllocateRegisterGraph(uint32_t ClassCount) {
     RegisterGraph *Graph = new RegisterGraph{};
@@ -108,63 +166,13 @@ namespace {
     Graph->Set.Classes.resize(ClassCount);
 
     // Allocate default nodes
-    ResetRegisterGraph(Graph, DEFAULT_NODE_COUNT);
+    Graph->Reset(DEFAULT_NODE_COUNT);
     return Graph;
-  }
-
-
-  void AllocatePhysicalRegisters(RegisterGraph *Graph, FEXCore::IR::RegisterClassType Class, uint32_t Count) {
-    Graph->Set.Classes[Class].CountMask = (1 << Count) - 1;
-    Graph->Set.Classes[Class].PhysicalCount = Count;
-  }
-
-  void SetConflict(RegisterGraph *Graph, PhysicalRegister RegAndClass, PhysicalRegister ConflictRegAndClass) {
-    uint32_t Index = (ConflictRegAndClass.Class << 8) | RegAndClass.Raw;
-
-    Graph->Set.Conflicts[Index] |= 1 << ConflictRegAndClass.Reg;
-  }
-
-  uint32_t GetConflicts(RegisterGraph *Graph, PhysicalRegister RegAndClass, FEXCore::IR::RegisterClassType ConflictClass) {
-    uint32_t Index = (ConflictClass.Val << 8) | RegAndClass.Raw;
-
-    return Graph->Set.Conflicts[Index];
-  }
-
-  void VirtualAddRegisterConflict(RegisterGraph *Graph, FEXCore::IR::RegisterClassType ClassConflict, uint32_t RegConflict, FEXCore::IR::RegisterClassType Class, uint32_t Reg) {
-
-    auto RegAndClass = PhysicalRegister(Class, Reg);
-    auto RegAndClassConflict = PhysicalRegister(ClassConflict, RegConflict);
-
-    // Conflict must go both ways
-    SetConflict(Graph, RegAndClass, RegAndClassConflict);
-    SetConflict(Graph, RegAndClassConflict, RegAndClass);
   }
 
   void FreeRegisterGraph(RegisterGraph *Graph) {
     delete Graph;
   }
-
-  void ResetRegisterGraph(RegisterGraph *Graph, uint64_t NodeCount) {
-    NodeCount = FEXCore::AlignUp(NodeCount, REGISTER_NODES_PER_PAGE);
-
-    // Clear to free the Bucketlists which have unique_ptrs
-    // Resize to our correct size
-    Graph->Nodes.clear();
-    Graph->Nodes.resize(NodeCount);
-
-    Graph->VisitedNodePredecessors.clear();
-    Graph->AllocData = RegisterAllocationData::Create(NodeCount);
-    Graph->NodeCount = NodeCount;
-  }
-
-  void SetNodeClass(RegisterGraph *Graph, IR::NodeID Node, FEXCore::IR::RegisterClassType Class) {
-    Graph->AllocData->Map[Node.Value].Class = Class.Val;
-  }
-
-  void SetNodePartner(RegisterGraph *Graph, IR::NodeID Node, IR::NodeID Partner) {
-    Graph->Nodes[Node.Value].Head.PhiPartner = &Graph->Nodes[Partner.Value];
-  }
-
 
   #if 0
   bool IsConflict(RegisterGraph *Graph, PhysicalRegister RegAndClass, PhysicalRegister ConflictRegAndClass) {
@@ -198,7 +206,7 @@ namespace {
   }
   #endif
 
-  FEXCore::IR::RegisterClassType GetRegClassFromNode(FEXCore::IR::IRListView *IR, FEXCore::IR::IROp_Header *IROp) {
+  RegisterClassType GetRegClassFromNode(const IRListView *IR, const IROp_Header *IROp) {
     using namespace FEXCore;
 
     FEXCore::IR::RegisterClassType Class = IR::GetRegClass(IROp->Op);
@@ -249,19 +257,6 @@ namespace {
 
     // Unreachable
     return FEXCore::IR::InvalidClass;
-  };
-
-  // Walk the IR and set the node classes
-  void FindNodeClasses(RegisterGraph *Graph, FEXCore::IR::IRListView *IR) {
-    for (auto [CodeNode, IROp] : IR->GetAllCode()) {
-      // If the destination hasn't yet been set then set it now
-      if (IROp->HasDest) {
-        const auto ID = IR->GetID(CodeNode);
-        Graph->AllocData->Map[ID.Value] = PhysicalRegister(GetRegClassFromNode(IR, IROp), INVALID_REG);
-      } else {
-        //Graph->AllocData->Map[IR->GetID(CodeNode)] = PhysicalRegister::Invalid();
-      }
-    }
   }
 } // Anonymous namespace
 
@@ -363,14 +358,14 @@ namespace {
     }
   }
 
-  void ConstrainedRAPass::AddRegisters(FEXCore::IR::RegisterClassType Class, uint32_t RegisterCount) {
+  void ConstrainedRAPass::AddRegisters(RegisterClassType Class, uint32_t RegisterCount) {
     LOGMAN_THROW_AA_FMT(RegisterCount <= INVALID_REG, "Up to {} regs supported", INVALID_REG);
 
-    AllocatePhysicalRegisters(Graph, Class, RegisterCount);
+    Graph->AllocatePhysicalRegisters(Class, RegisterCount);
   }
 
-  void ConstrainedRAPass::AddRegisterConflict(FEXCore::IR::RegisterClassType ClassConflict, uint32_t RegConflict, FEXCore::IR::RegisterClassType Class, uint32_t Reg) {
-    VirtualAddRegisterConflict(Graph, ClassConflict, RegConflict, Class, Reg);
+  void ConstrainedRAPass::AddRegisterConflict(RegisterClassType ClassConflict, uint32_t RegConflict, RegisterClassType Class, uint32_t Reg) {
+    Graph->VirtualAddRegisterConflict(ClassConflict, RegConflict, Class, Reg);
   }
 
   RegisterAllocationData* ConstrainedRAPass::GetAllocationData() {
@@ -530,7 +525,7 @@ namespace {
 
             // Set the node partner to the current one
             // This creates a singly linked list of node partners to follow
-            SetNodePartner(Graph, CurrentSourcePartner, ValueID);
+            Graph->SetNodePartner(CurrentSourcePartner, ValueID);
             CurrentSourcePartner = ValueID;
             NodeBegin = IR->at(ValueOp->Next);
           }
@@ -660,7 +655,7 @@ namespace {
             SRA_DEBUG("Prewritting ssa{} (Store in ssa{})\n", OpID, Node);
             OpLiveRange.PrefferedRegister = GetRegAndClassFromOffset(Op->Offset);
             OpLiveRange.PreWritten = Node;
-            SetNodeClass(Graph, OpID, Op->StaticClass);
+            Graph->SetNodeClass(OpID, Op->StaticClass);
           }
         }
       }
@@ -702,7 +697,7 @@ namespace {
             SRA_DEBUG("Demoting ssa{} because accessed after write in ssa{}\n", ArgNode, Node);
             ArgNodeLiveRange.PrefferedRegister = PhysicalRegister::Invalid();
             auto ArgNodeNode = IR->GetNode(Arg);
-            SetNodeClass(Graph, ArgNode, GetRegClassFromNode(IR, ArgNodeNode->Op(IR->GetData())));
+            Graph->SetNodeClass(ArgNode, GetRegClassFromNode(IR, ArgNodeNode->Op(IR->GetData())));
           }
         }
 
@@ -737,7 +732,7 @@ namespace {
                         ID, Node, -1 /*vreg*/);
               (*StaticMap)->PrefferedRegister = PhysicalRegister::Invalid();
               (*StaticMap)->PreWritten.Invalidate();
-              SetNodeClass(Graph, ID, Op->Class);
+              Graph->SetNodeClass(ID, Op->Class);
             }
 
             // if not sra-allocated and full size, sra-allocate
@@ -755,7 +750,7 @@ namespace {
 
                 NodeLiveRange.PrefferedRegister = GetRegAndClassFromOffset(Op->Offset); //0, 1, and so on
                 (*StaticMap) = &NodeLiveRange;
-                SetNodeClass(Graph, Node, Op->StaticClass);
+                Graph->SetNodeClass(Node, Op->StaticClass);
                 SRA_DEBUG("Marking ssa{} as allocated to sra{}\n", Node, -1 /*vreg*/);
               }
             }
@@ -1001,7 +996,7 @@ namespace {
         } else {
           uint32_t RegisterConflicts = 0;
           CurrentNode->Interferences.Iterate([&](const IR::NodeID InterferenceNode) {
-            RegisterConflicts |= GetConflicts(Graph, Graph->AllocData->Map[InterferenceNode.Value], {RegClass});
+            RegisterConflicts |= Graph->GetConflicts(Graph->AllocData->Map[InterferenceNode.Value], {RegClass});
           });
 
           RegisterConflicts = (~RegisterConflicts) & RAClass->CountMask;
@@ -1485,10 +1480,10 @@ namespace {
 
     auto IR = IREmit->ViewIR();
 
-    uint32_t SSACount = IR.GetSSACount();
+    const uint32_t SSACount = IR.GetSSACount();
 
-    ResetRegisterGraph(Graph, SSACount);
-    FindNodeClasses(Graph, &IR);
+    Graph->Reset(SSACount);
+    Graph->FindNodeClasses(&IR);
     CalculateLiveRange(&IR);
     if (OptimizeSRA)
       OptimizeStaticRegisters(&IR);
