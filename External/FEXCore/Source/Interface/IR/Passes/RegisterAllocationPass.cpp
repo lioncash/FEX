@@ -21,6 +21,7 @@ $end_info$
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <memory>
 #include <optional>
 #include <set>
 #include <strings.h>
@@ -158,8 +159,8 @@ namespace {
     }
   };
 
-  RegisterGraph *AllocateRegisterGraph(uint32_t ClassCount) {
-    RegisterGraph *Graph = new RegisterGraph{};
+  std::unique_ptr<RegisterGraph> AllocateRegisterGraph(uint32_t ClassCount) {
+    auto Graph = std::make_unique<RegisterGraph>();
 
     // Allocate the register set
     Graph->Set.ClassCount = ClassCount;
@@ -168,10 +169,6 @@ namespace {
     // Allocate default nodes
     Graph->Reset(DEFAULT_NODE_COUNT);
     return Graph;
-  }
-
-  void FreeRegisterGraph(RegisterGraph *Graph) {
-    delete Graph;
   }
 
   #if 0
@@ -285,7 +282,7 @@ namespace {
       std::vector<BucketList<DEFAULT_INTERFERENCE_SPAN_COUNT, uint32_t>> SpanStart;
       std::vector<BucketList<DEFAULT_INTERFERENCE_SPAN_COUNT, uint32_t>> SpanEnd;
 
-      RegisterGraph *Graph;
+      std::unique_ptr<RegisterGraph> Graph;
       FEXCore::IR::Pass* CompactionPass;
       bool OptimizeSRA;
       bool SupportsAVX;
@@ -340,9 +337,7 @@ namespace {
     : CompactionPass {_CompactionPass}, OptimizeSRA(_OptimizeSRA), SupportsAVX{_SupportsAVX} {
   }
 
-  ConstrainedRAPass::~ConstrainedRAPass() {
-    FreeRegisterGraph(Graph);
-  }
+  ConstrainedRAPass::~ConstrainedRAPass() = default;
 
   void ConstrainedRAPass::AllocateRegisterSet(uint32_t RegisterCount, uint32_t ClassCount) {
     LOGMAN_THROW_AA_FMT(RegisterCount <= INVALID_REG, "Up to {} regs supported", INVALID_REG);
