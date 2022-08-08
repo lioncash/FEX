@@ -17,7 +17,12 @@
 #include <utility>
 
 namespace FEXCore::CPU {
+
 #define STATE x28
+#define TMP1 x0
+#define TMP2 x1
+#define TMP3 x2
+#define TMP4 x3
 
 // We want vixl to not allocate a default buffer. Jit and dispatcher will manually create one.
 Arm64Emitter::Arm64Emitter(FEXCore::Context::Context *ctx, size_t size)
@@ -286,15 +291,31 @@ void Arm64Emitter::FillStaticRegs(bool FPRs, uint32_t GPRFillMask, uint32_t FPRF
 }
 
 void Arm64Emitter::PushDynamicRegsAndLR() {
-  uint64_t SPOffset = AlignUp((RA64.size() + 1) * 8 + RAFPR.size() * 16, 16);
+  const bool SupportsAVX = EmitterCTX->HostFeatures.SupportsAVX;
+  const uint64_t VectorByteSize = SupportsAVX ? 32 : 16;
+  const uint64_t GPRBytes = (RA64.size() + 1) * 8;
+  const uint64_t FPRBytes = RAFPR.size() * VectorByteSize;
+  const uint64_t SPOffset = AlignUp(GPRBytes + FPRBytes, 16);
 
   sub(sp, sp, SPOffset);
   int i = 0;
 
-  for (auto RA : RAFPR)
-  {
-    str(RA.Q(), MemOperand(sp, i * 8));
-    i+=2;
+  if (SupportsAVX) {
+    int idx = 0;
+
+    ptrue(p0.VnB(), SVE_VL32);
+    mov(TMP1, 0);
+    for (const auto& RA : RAFPR) {
+      st1b(RA.Z().VnB(), p0, SVEMemOperand(sp, TMP1));
+      add(TMP1, TMP1, VectorByteSize);
+      i += 4;
+      idx++;
+    }
+  } else {
+    for (const auto& RA : RAFPR) {
+      str(RA.Q(), MemOperand(sp, i * 8));
+      i += 2;
+    }
   }
 
 #if 0 // All GPRs should be caller saved
@@ -309,13 +330,30 @@ void Arm64Emitter::PushDynamicRegsAndLR() {
 }
 
 void Arm64Emitter::PopDynamicRegsAndLR() {
-  uint64_t SPOffset = AlignUp((RA64.size() + 1) * 8 + RAFPR.size() * 16, 16);
+  const bool SupportsAVX = EmitterCTX->HostFeatures.SupportsAVX;
+  const uint64_t VectorByteSize = SupportsAVX ? 32 : 16;
+  const uint64_t GPRBytes = (RA64.size() + 1) * 8;
+  const uint64_t FPRBytes = RAFPR.size() * VectorByteSize;
+  const uint64_t SPOffset = AlignUp(GPRBytes + FPRBytes, 16);
+
   int i = 0;
 
-  for (auto RA : RAFPR)
-  {
-    ldr(RA.Q(), MemOperand(sp, i * 8));
-    i+=2;
+  if (SupportsAVX) {
+    int idx = 0;
+
+    ptrue(p0.VnB(), SVE_VL32);
+    mov(TMP1, 0);
+    for (const auto& RA : RAFPR) {
+      ld1b(RA.Z().VnB(), p0.Zeroing(), SVEMemOperand(sp, TMP1));
+      add(TMP1, TMP1, VectorByteSize);
+      i += 4;
+      idx++;
+    }
+  } else {
+    for (const auto& RA : RAFPR) {
+      ldr(RA.Q(), MemOperand(sp, i * 8));
+      i += 2;
+    }
   }
 
 #if 0 // All GPRs should be caller saved
