@@ -111,39 +111,70 @@ DEF_OP(SplatVector4) {
 }
 
 DEF_OP(VMov) {
-	auto Op = IROp->C<IR::IROp_VMov>();
-	const uint8_t OpSize = IROp->Size;
+  auto Op = IROp->C<IR::IROp_VMov>();
+  const uint8_t OpSize = IROp->Size;
 
-	switch (OpSize) {
-		case 1: {
-			eor(VTMP1.V16B(), VTMP1.V16B(), VTMP1.V16B());
-			mov(VTMP1.V16B(), 0, GetSrc(Op->Source.ID()).V16B(), 0);
-			mov(GetDst(Node), VTMP1);
-			break;
-		}
-		case 2: {
-			eor(VTMP1.V16B(), VTMP1.V16B(), VTMP1.V16B());
-			mov(VTMP1.V8H(), 0, GetSrc(Op->Source.ID()).V8H(), 0);
-			mov(GetDst(Node), VTMP1);
-			break;
-		}
-		case 4: {
-			eor(VTMP1.V16B(), VTMP1.V16B(), VTMP1.V16B());
-			mov(VTMP1.V4S(), 0, GetSrc(Op->Source.ID()).V4S(), 0);
-			mov(GetDst(Node), VTMP1);
-			break;
-		}
-		case 8: {
-			mov(GetDst(Node).V8B(), GetSrc(Op->Source.ID()).V8B());
-			break;
-		}
-		case 16: {
-			if (GetDst(Node).GetCode() != GetSrc(Op->Source.ID()).GetCode())
-			  mov(GetDst(Node).V16B(), GetSrc(Op->Source.ID()).V16B());
-			break;
-		}
-		default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", OpSize); break;
-	}
+  const auto Dst = GetDst(Node);
+  const auto Source = GetSrc(Op->Source.ID());
+
+  switch (OpSize) {
+    case 1: {
+      eor(VTMP1.V16B(), VTMP1.V16B(), VTMP1.V16B());
+      mov(VTMP1.V16B(), 0, Source.V16B(), 0);
+      if (CanUseSVE) {
+        eor(Dst.Z().VnD(), Dst.Z().VnD(), Dst.Z().VnD());
+      }
+      mov(Dst, VTMP1);
+      break;
+    }
+    case 2: {
+      eor(VTMP1.V16B(), VTMP1.V16B(), VTMP1.V16B());
+      mov(VTMP1.V8H(), 0, Source.V8H(), 0);
+      if (CanUseSVE) {
+        eor(Dst.Z().VnD(), Dst.Z().VnD(), Dst.Z().VnD());
+      }
+      mov(Dst, VTMP1);
+      break;
+    }
+    case 4: {
+      eor(VTMP1.V16B(), VTMP1.V16B(), VTMP1.V16B());
+      mov(VTMP1.V4S(), 0, Source.V4S(), 0);
+      if (CanUseSVE) {
+        eor(Dst.Z().VnD(), Dst.Z().VnD(), Dst.Z().VnD());
+      }
+      mov(Dst, VTMP1);
+      break;
+    }
+    case 8: {
+      if (CanUseSVE) {
+        mov(VTMP1.V8B(), Source.V8B());
+        eor(Dst.Z().VnD(), Dst.Z().VnD(), Dst.Z().VnD());
+        mov(Dst.V8B(), VTMP1.V8B());
+      } else {
+        mov(Dst.V8B(), Source.V8B());
+      }
+      break;
+    }
+    case 16: {
+      if (CanUseSVE) {
+        mov(VTMP1.V16B(), Source.V16B());
+        eor(Dst.Z().VnD(), Dst.Z().VnD(), Dst.Z().VnD());
+        mov(Dst.V16B(), VTMP1.V16B());
+      } else {
+        if (Dst.GetCode() != Source.GetCode()) {
+          mov(Dst.V16B(), Source.V16B());
+        }
+      }
+      break;
+    }
+    case 32: {
+      mov(Dst.Z().VnD(), Source.Z().VnD());
+      break;
+    }
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", OpSize);
+      break;
+  }
 }
 
 DEF_OP(VAnd) {
