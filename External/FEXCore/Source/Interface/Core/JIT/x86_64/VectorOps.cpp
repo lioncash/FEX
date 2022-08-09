@@ -185,24 +185,31 @@ DEF_OP(VXor) {
 
 DEF_OP(VAdd) {
   auto Op = IROp->C<IR::IROp_VAdd>();
+
+  const auto Dst = ToYMM(GetDst(Node));
+  const auto Vector1 = ToYMM(GetSrc(Op->Vector1.ID()));
+  const auto Vector2 = ToYMM(GetSrc(Op->Vector2.ID()));
+
   switch (Op->Header.ElementSize) {
     case 1: {
-      vpaddb(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpaddb(Dst, Vector1, Vector2);
       break;
     }
     case 2: {
-      vpaddw(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpaddw(Dst, Vector1, Vector2);
       break;
     }
     case 4: {
-      vpaddd(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpaddd(Dst, Vector1, Vector2);
       break;
     }
     case 8: {
-      vpaddq(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpaddq(Dst, Vector1, Vector2);
       break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize);
+      break;
   }
 }
 
