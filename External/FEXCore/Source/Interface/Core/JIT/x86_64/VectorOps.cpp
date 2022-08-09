@@ -175,7 +175,12 @@ DEF_OP(VOr) {
 
 DEF_OP(VXor) {
   auto Op = IROp->C<IR::IROp_VXor>();
-  vpxor(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+
+  const auto Dst = GetDst(Node);
+  const auto Vector1 = GetSrc(Op->Vector1.ID());
+  const auto Vector2 = GetSrc(Op->Vector2.ID());
+
+  vpxor(ToYMM(Dst), ToYMM(Vector1), ToYMM(Vector2));
 }
 
 DEF_OP(VAdd) {
