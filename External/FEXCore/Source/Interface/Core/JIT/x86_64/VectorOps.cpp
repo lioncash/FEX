@@ -152,10 +152,15 @@ DEF_OP(VAnd) {
 
 DEF_OP(VBic) {
   auto Op = IROp->C<IR::IROp_VBic>();
+
+  const auto Dst = GetDst(Node);
+  const auto Vector1 = GetSrc(Op->Vector1.ID());
+  const auto Vector2 = GetSrc(Op->Vector2.ID());
+
   // This doesn't map directly to ARM
-  vpcmpeqd(xmm15, xmm15, xmm15);
-  vpxor(xmm15, GetSrc(Op->Vector2.ID()), xmm15);
-  vpand(GetDst(Node), GetSrc(Op->Vector1.ID()), xmm15);
+  vpcmpeqd(ymm15, ymm15, ymm15);
+  vpxor(ymm15, ToYMM(Vector2), ymm15);
+  vpand(ToYMM(Dst), ToYMM(Vector1), ymm15);
 }
 
 DEF_OP(VOr) {
