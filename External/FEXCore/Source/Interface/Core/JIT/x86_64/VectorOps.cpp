@@ -61,9 +61,12 @@ DEF_OP(VectorImm) {
 
   mov(TMP1, Element);
   vmovq(Dst, TMP1);
+
   if (OpSize == 16) {
     // Duplicate to the upper 64bits if we are 128bits
     movddup(Dst, Dst);
+  } else if (OpSize == 32) {
+    vbroadcastsd(ToYMM(Dst), Dst);
   }
 }
 
