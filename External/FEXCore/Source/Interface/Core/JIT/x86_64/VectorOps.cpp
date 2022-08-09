@@ -18,7 +18,7 @@ namespace FEXCore::CPU {
 
 #define DEF_OP(x) void X86JITCore::Op_##x(IR::IROp_Header *IROp, IR::NodeID Node)
 DEF_OP(VectorZero) {
-  auto Dst = GetDst(Node);
+  auto Dst = ToYMM(GetDst(Node));
   vpxor(Dst, Dst, Dst);
 }
 

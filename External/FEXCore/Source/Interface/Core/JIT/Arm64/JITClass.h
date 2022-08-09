@@ -66,6 +66,7 @@ public:
 
 private:
   FEX_CONFIG_OPT(ParanoidTSO, PARANOIDTSO);
+  bool CanUseSVE{};
 
   Label *PendingTargetLabel;
   FEXCore::Context::Context *CTX;
