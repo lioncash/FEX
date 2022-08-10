@@ -834,24 +834,68 @@ DEF_OP(VAbs) {
 
 DEF_OP(VPopcount) {
   auto Op = IROp->C<IR::IROp_VPopcount>();
-  const uint8_t OpSize = IROp->Size;
-  if (OpSize == 8) {
-    // Scalar
-    switch (Op->Header.ElementSize) {
-      case 1: {
-        cnt(GetDst(Node).V8B(), GetSrc(Op->Vector.ID()).V8B());
-      break;
+
+  const auto OpSize = IROp->Size;
+  const auto ElementSize = Op->Header.ElementSize;
+
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (CanUseSVE) {
+    if (OpSize == 8) {
+      switch (ElementSize) {
+        case 1:
+          eor(VTMP1.Z().VnD(), VTMP1.Z().VnD(), VTMP1.Z().VnD());
+          cnt(VTMP1.V8B(), Vector.V8B());
+          mov(Dst.Z().VnD(), VTMP1.Z().VnD());
+          break;
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
       }
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    } else {
+      ptrue(p0.VnB());
+
+      switch (ElementSize) {
+        case 1:
+          cnt(Dst.Z().VnB(), p0.Merging(), Vector.Z().VnB());
+          break;
+        case 2:
+          cnt(Dst.Z().VnH(), p0.Merging(), Vector.Z().VnH());
+          break;
+        case 4:
+          cnt(Dst.Z().VnS(), p0.Merging(), Vector.Z().VnS());
+          break;
+        case 8:
+          cnt(Dst.Z().VnD(), p0.Merging(), Vector.Z().VnD());
+          break;
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
+      }
     }
-  }
-  else {
-    // Vector
-    switch (Op->Header.ElementSize) {
-      case 1:
-        cnt(GetDst(Node).V16B(), GetSrc(Op->Vector.ID()).V16B());
-        break;
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+  } else {
+    if (OpSize == 8) {
+      // Scalar
+      switch (ElementSize) {
+        case 1: {
+          cnt(Dst.V8B(), Vector.V8B());
+          break;
+        }
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
+      }
+    } else {
+      // Vector
+      switch (ElementSize) {
+        case 1:
+          cnt(Dst.V16B(), Vector.V16B());
+          break;
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
+      }
     }
   }
 }
