@@ -446,17 +446,20 @@ DEF_OP(VAddV) {
 DEF_OP(VUMinV) {
   auto Op = IROp->C<IR::IROp_VUMinV>();
 
-  auto Src = GetSrc(Op->Vector.ID());
-  auto Dest = GetDst(Node);
+  const auto Src = GetSrc(Op->Vector.ID());
+  const auto Dest = GetDst(Node);
+
   switch (Op->Header.ElementSize) {
     case 2: {
-      phminposuw(Dest, Src);
+      vphminposuw(Dest, Src);
       // Extract the upper bits which are zero, overwriting position
       pextrw(eax, Dest, 2);
       pinsrw(Dest, eax, 1);
-    break;
+      break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize);
+      break;
   }
 }
 

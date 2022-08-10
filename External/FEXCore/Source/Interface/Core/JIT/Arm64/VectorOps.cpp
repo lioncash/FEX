@@ -647,16 +647,67 @@ DEF_OP(VAddV) {
 
 DEF_OP(VUMinV) {
   auto Op = IROp->C<IR::IROp_VUMinV>();
-  const uint8_t OpSize = IROp->Size;
-  const uint8_t Elements = OpSize / Op->Header.ElementSize;
-  // Vector
-  switch (Op->Header.ElementSize) {
-    case 1:
-    case 2:
-    case 4:
-      uminv(GetDst(Node).VCast(Op->Header.ElementSize * 8, 1), GetSrc(Op->Vector.ID()).VCast(OpSize * 8, Elements));
-      break;
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+
+  const auto OpSize = IROp->Size;
+  const auto ElementSize = Op->Header.ElementSize;
+  const auto Elements = OpSize / ElementSize;
+
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (CanUseSVE) {
+    eor(VTMP1.Z().VnD(), VTMP1.Z().VnD(), VTMP1.Z().VnD());
+
+    switch (ElementSize) {
+      case 1:
+        if (OpSize == 8) {
+          ptrue(p0.VnB(), SVE_VL8);
+        } else {
+          ptrue(p0.VnB(), SVE_ALL);
+        }
+        uminv(VTMP1.B(), p0, Vector.Z().VnB());
+        break;
+      case 2:
+        if (OpSize == 8) {
+          ptrue(p0.VnH(), SVE_VL4);
+        } else {
+          ptrue(p0.VnH(), SVE_ALL);
+        }
+        uminv(VTMP1.H(), p0, Vector.Z().VnH());
+        break;
+      case 4:
+        if (OpSize == 8) {
+          ptrue(p0.VnS(), SVE_VL2);
+        } else {
+          ptrue(p0.VnS(), SVE_ALL);
+        }
+        uminv(VTMP1.S(), p0, Vector.Z().VnS());
+        break;
+      case 8:
+        LOGMAN_THROW_AA_FMT(OpSize >= 16,
+                            "64-bit horizontal operation in 64-bit wide register"
+                            "doesn't make sense.");
+        ptrue(p0.VnD(), SVE_ALL);
+        uminv(VTMP1.D(), p0, Vector.Z().VnD());
+        break;
+      default:
+        LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+        return;
+    }
+
+    mov(Dst.Z().VnD(), VTMP1.Z().VnD());
+  } else {
+    // Vector
+    switch (ElementSize) {
+      case 1:
+      case 2:
+      case 4:
+        uminv(Dst.VCast(ElementSize * 8, 1), Vector.VCast(OpSize * 8, Elements));
+        break;
+      default:
+        LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+        break;
+    }
   }
 }
 
