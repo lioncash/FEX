@@ -935,16 +935,52 @@ DEF_OP(VFAdd) {
 
 DEF_OP(VFAddP) {
   auto Op = IROp->C<IR::IROp_VFAddP>();
-  switch (Op->Header.ElementSize) {
-    case 4: {
-      faddp(GetDst(Node).V4S(), GetSrc(Op->VectorLower.ID()).V4S(), GetSrc(Op->VectorUpper.ID()).V4S());
-    break;
+
+  const auto ElementSize = Op->Header.ElementSize;
+
+  const auto Dst = GetDst(Node);
+  const auto VectorLower = GetSrc(Op->VectorLower.ID());
+  const auto VectorUpper = GetSrc(Op->VectorUpper.ID());
+
+  if (CanUseSVE) {
+    // SVE FADDP is a destructive operation, so we need a temporary.
+    mov(VTMP1.Z().VnD(), VectorLower.Z().VnD());
+    ptrue(p0.VnB());
+
+    switch (ElementSize) {
+      case 2:
+        faddp(VTMP1.Z().VnH(), p0.Merging(), VTMP1.Z().VnH(), VectorUpper.Z().VnH());
+        break;
+      case 4:
+        faddp(VTMP1.Z().VnS(), p0.Merging(), VTMP1.Z().VnS(), VectorUpper.Z().VnS());
+        break;
+      case 8:
+        faddp(VTMP1.Z().VnD(), p0.Merging(), VTMP1.Z().VnD(), VectorUpper.Z().VnD());
+        break;
+      default:
+        LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+        return;
     }
-    case 8: {
-      faddp(GetDst(Node).V2D(), GetSrc(Op->VectorLower.ID()).V2D(), GetSrc(Op->VectorUpper.ID()).V2D());
-    break;
+
+    mov(Dst.Z().VnD(), VTMP1.Z().VnD());
+  } else {
+    switch (ElementSize) {
+      case 2: {
+        faddp(Dst.V8H(), VectorLower.V8H(), VectorUpper.V8H());
+        break;
+      }
+      case 4: {
+        faddp(Dst.V4S(), VectorLower.V4S(), VectorUpper.V4S());
+        break;
+      }
+      case 8: {
+        faddp(Dst.V2D(), VectorLower.V2D(), VectorUpper.V2D());
+        break;
+      }
+      default:
+        LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+        break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
   }
 }
 

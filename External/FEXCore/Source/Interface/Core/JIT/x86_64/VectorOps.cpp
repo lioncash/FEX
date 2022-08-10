@@ -576,14 +576,21 @@ DEF_OP(VFAdd) {
 
 DEF_OP(VFAddP) {
   auto Op = IROp->C<IR::IROp_VFAddP>();
+
+  const auto Dst = ToYMM(GetDst(Node));
+  const auto VectorLower = ToYMM(GetSrc(Op->VectorLower.ID()));
+  const auto VectorUpper = ToYMM(GetSrc(Op->VectorUpper.ID()));
+
   switch (Op->Header.ElementSize) {
     case 4:
-      vhaddps(GetDst(Node), GetSrc(Op->VectorLower.ID()), GetSrc(Op->VectorUpper.ID()));
+      vhaddps(Dst, VectorLower, VectorUpper);
       break;
     case 8:
-      vhaddpd(GetDst(Node), GetSrc(Op->VectorLower.ID()), GetSrc(Op->VectorUpper.ID()));
+      vhaddpd(Dst, VectorLower, VectorUpper);
       break;
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize);
+      break;
   }
 }
 
