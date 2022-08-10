@@ -487,24 +487,30 @@ DEF_OP(VURAvg) {
 
 DEF_OP(VAbs) {
   auto Op = IROp->C<IR::IROp_VAbs>();
+
+  const auto Dst = ToYMM(GetDst(Node));
+  const auto Vector = ToYMM(GetSrc(Op->Vector.ID()));
+
   switch (Op->Header.ElementSize) {
     case 1: {
-      vpabsb(GetDst(Node), GetSrc(Op->Vector.ID()));
+      vpabsb(Dst, Vector);
       break;
     }
     case 2: {
-      vpabsw(GetDst(Node), GetSrc(Op->Vector.ID()));
+      vpabsw(Dst, Vector);
       break;
     }
     case 4: {
-      vpabsd(GetDst(Node), GetSrc(Op->Vector.ID()));
+      vpabsd(Dst, Vector);
       break;
     }
     case 8: {
-      vpabsq(GetDst(Node), GetSrc(Op->Vector.ID()));
+      vpabsq(Dst, Vector);
       break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize);
+      break;
   }
 }
 
