@@ -523,44 +523,106 @@ DEF_OP(VSQSub) {
 
 DEF_OP(VAddP) {
   auto Op = IROp->C<IR::IROp_VAddP>();
-  const uint8_t OpSize = IROp->Size;
+
+  const auto OpSize = IROp->Size;
+  const auto ElementSize = Op->Header.ElementSize;
+
+  const auto Dst = GetDst(Node);
+  const auto VectorLower = GetSrc(Op->VectorLower.ID());
+  const auto VectorUpper = GetSrc(Op->VectorUpper.ID());
 
   if (OpSize == 8) {
-    switch (Op->Header.ElementSize) {
-      case 1: {
-        addp(GetDst(Node).V8B(), GetSrc(Op->VectorLower.ID()).V8B(), GetSrc(Op->VectorUpper.ID()).V8B());
-        break;
-      }
-      case 2: {
-        addp(GetDst(Node).V4H(), GetSrc(Op->VectorLower.ID()).V4H(), GetSrc(Op->VectorUpper.ID()).V4H());
-        break;
-      }
-      case 4: {
-        addp(GetDst(Node).V2S(), GetSrc(Op->VectorLower.ID()).V2S(), GetSrc(Op->VectorUpper.ID()).V2S());
-        break;
-      }
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    if (CanUseSVE) {
+      // Ensure no junk is in any upper lanes.
+      eor(VTMP1.Z().VnD(), VTMP1.Z().VnD(), VTMP1.Z().VnD());
     }
-  }
-  else {
-    switch (Op->Header.ElementSize) {
+
+    switch (ElementSize) {
       case 1: {
-        addp(GetDst(Node).V16B(), GetSrc(Op->VectorLower.ID()).V16B(), GetSrc(Op->VectorUpper.ID()).V16B());
+        if (CanUseSVE) {
+          addp(VTMP1.V8B(), VectorLower.V8B(), VectorUpper.V8B());
+        } else {
+          addp(Dst.V8B(), VectorLower.V8B(), VectorUpper.V8B());
+        }
         break;
       }
       case 2: {
-        addp(GetDst(Node).V8H(), GetSrc(Op->VectorLower.ID()).V8H(), GetSrc(Op->VectorUpper.ID()).V8H());
+        if (CanUseSVE) {
+          addp(VTMP1.V4H(), VectorLower.V4H(), VectorUpper.V4H());
+        } else {
+          addp(Dst.V4H(), VectorLower.V4H(), VectorUpper.V4H());
+        }
         break;
       }
       case 4: {
-        addp(GetDst(Node).V4S(), GetSrc(Op->VectorLower.ID()).V4S(), GetSrc(Op->VectorUpper.ID()).V4S());
+        if (CanUseSVE) {
+          addp(VTMP1.V2S(), VectorLower.V2S(), VectorUpper.V2S());
+        } else {
+          addp(Dst.V2S(), VectorLower.V2S(), VectorUpper.V2S());
+        }
+        break;
+      }
+      default:
+        LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+        return;
+    }
+
+    if (CanUseSVE) {
+      // Place result into intended destination
+      mov(Dst.Z().VnD(), VTMP1.Z().VnD());
+    }
+  } else {
+    if (CanUseSVE) {
+      // SVE addp destructively stores the result in the first
+      // argument register, so we need to use a temporary here.
+      mov(VTMP1.Z().VnD(), VectorLower.Z().VnD());
+
+      // SVE addp also doesn't have an unpredicated variant,
+      // so set up a predicate register:
+      ptrue(p0.VnB());
+    }
+
+    switch (ElementSize) {
+      case 1: {
+        if (CanUseSVE) {
+          addp(VTMP1.Z().VnB(), p0.Merging(), VTMP1.Z().VnB(), VectorUpper.Z().VnB());
+        } else {
+          addp(Dst.V16B(), VectorLower.V16B(), VectorUpper.V16B());
+        }
+        break;
+      }
+      case 2: {
+        if (CanUseSVE) {
+          addp(VTMP1.Z().VnH(), p0.Merging(), VTMP1.Z().VnH(), VectorUpper.Z().VnH());
+        } else {
+          addp(Dst.V8H(), VectorLower.V8H(), VectorUpper.V8H());
+        }
+        break;
+      }
+      case 4: {
+        if (CanUseSVE) {
+          addp(VTMP1.Z().VnS(), p0.Merging(), VTMP1.Z().VnS(), VectorUpper.Z().VnS());
+        } else {
+          addp(Dst.V4S(), VectorLower.V4S(), VectorUpper.V4S());
+        }
         break;
       }
       case 8: {
-        addp(GetDst(Node).V2D(), GetSrc(Op->VectorLower.ID()).V2D(), GetSrc(Op->VectorUpper.ID()).V2D());
+        if (CanUseSVE) {
+          addp(VTMP1.Z().VnD(), p0.Merging(), VTMP1.Z().VnD(), VectorUpper.Z().VnD());
+        } else {
+          addp(Dst.V2D(), VectorLower.V2D(), VectorUpper.V2D());
+        }
         break;
       }
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+      default:
+        LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+        return;
+    }
+
+    if (CanUseSVE) {
+      // Place result into the intended destination.
+      mov(Dst.Z().VnD(), VTMP1.Z().VnD());
     }
   }
 }
