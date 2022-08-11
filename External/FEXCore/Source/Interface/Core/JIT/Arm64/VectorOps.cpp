@@ -1721,20 +1721,47 @@ DEF_OP(VFRSqrt) {
 
 DEF_OP(VNeg) {
   auto Op = IROp->C<IR::IROp_VNeg>();
+
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (CanUseSVE) {
+    // SVE NEG is a predicated instruction.
+    ptrue(p0.VnB());
+  }
+
   switch (Op->Header.ElementSize) {
   case 1:
-    neg(GetDst(Node).V16B(), GetSrc(Op->Vector.ID()).V16B());
+    if (CanUseSVE) {
+      neg(Dst.Z().VnB(), p0.Merging(), Vector.Z().VnB());
+    } else {
+      neg(Dst.V16B(), Vector.V16B());
+    }
     break;
   case 2:
-    neg(GetDst(Node).V8H(), GetSrc(Op->Vector.ID()).V8H());
+    if (CanUseSVE) {
+      neg(Dst.Z().VnH(), p0.Merging(), Vector.Z().VnH());
+    } else {
+      neg(Dst.V8H(), Vector.V8H());
+    }
     break;
   case 4:
-    neg(GetDst(Node).V4S(), GetSrc(Op->Vector.ID()).V4S());
+    if (CanUseSVE) {
+      neg(Dst.Z().VnS(), p0.Merging(), Vector.Z().VnS());
+    } else {
+      neg(Dst.V4S(), Vector.V4S());
+    }
     break;
   case 8:
-    neg(GetDst(Node).V2D(), GetSrc(Op->Vector.ID()).V2D());
+    if (CanUseSVE) {
+      neg(Dst.Z().VnD(), p0.Merging(), Vector.Z().VnD());
+    } else {
+      neg(Dst.V2D(), Vector.V2D());
+    }
     break;
-  default: LOGMAN_MSG_A_FMT("Unsupported VNeg size: {}", IROp->Size);
+  default:
+    LOGMAN_MSG_A_FMT("Unsupported VNeg element size: {}", IROp->ElementSize);
+    break;
   }
 }
 
