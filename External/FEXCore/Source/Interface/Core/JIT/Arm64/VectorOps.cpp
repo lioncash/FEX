@@ -1507,33 +1507,98 @@ DEF_OP(VFRecp) {
 
 DEF_OP(VFSqrt) {
   auto Op = IROp->C<IR::IROp_VFRSqrt>();
-  const uint8_t OpSize = IROp->Size;
-  if (Op->Header.ElementSize == OpSize) {
-    // Scalar
-    switch (Op->Header.ElementSize) {
-      case 4: {
-        fsqrt(GetDst(Node).S(), GetSrc(Op->Vector.ID()).S());
-      break;
+
+  const auto OpSize = IROp->Size;
+  const auto ElementSize = Op->Header.ElementSize;
+
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (CanUseSVE) {
+    if (ElementSize == OpSize) {
+      eor(VTMP1.Z().VnD(), VTMP1.Z().VnD(), VTMP1.Z().VnD());
+
+      switch (ElementSize) {
+        case 2: {
+          fsqrt(VTMP1.H(), Vector.H());
+          break;
+        }
+        case 4: {
+          fsqrt(VTMP1.S(), Vector.S());
+          break;
+        }
+        case 8: {
+          fsqrt(VTMP1.D(), Vector.D());
+          break;
+        }
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          return;
       }
-      case 8: {
-        fsqrt(GetDst(Node).D(), GetSrc(Op->Vector.ID()).D());
-      break;
+
+      mov(Dst.Z().VnD(), VTMP1.Z().VnD());
+    } else {
+      // SVE FSQRT has no unpredicated variant, so
+      // set up a predicate.
+      ptrue(p0.VnB());
+
+      switch (ElementSize) {
+        case 2: {
+          fsqrt(Dst.Z().VnH(), p0.Merging(), Vector.Z().VnH());
+          break;
+        }
+        case 4: {
+          fsqrt(Dst.Z().VnS(), p0.Merging(), Vector.Z().VnS());
+          break;
+        }
+        case 8: {
+          fsqrt(Dst.Z().VnD(), p0.Merging(), Vector.Z().VnD());
+          break;
+        }
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
       }
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
     }
-  }
-  else {
-    // Vector
-    switch (Op->Header.ElementSize) {
-      case 4: {
-        fsqrt(GetDst(Node).V4S(), GetSrc(Op->Vector.ID()).V4S());
-      break;
+  } else {
+    if (ElementSize == OpSize) {
+      // Scalar
+      switch (ElementSize) {
+        case 2: {
+          fsqrt(Dst.H(), Vector.H());
+          break;
+        }
+        case 4: {
+          fsqrt(Dst.S(), Vector.S());
+          break;
+        }
+        case 8: {
+          fsqrt(Dst.D(), Vector.D());
+          break;
+        }
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
       }
-      case 8: {
-        fsqrt(GetDst(Node).V2D(), GetSrc(Op->Vector.ID()).V2D());
-      break;
+    } else {
+      // Vector
+      switch (ElementSize) {
+        case 2: {
+          fsqrt(Dst.V8H(), Vector.V8H());
+          break;
+        }
+        case 4: {
+          fsqrt(Dst.V4S(), Vector.V4S());
+          break;
+        }
+        case 8: {
+          fsqrt(Dst.V2D(), Vector.V2D());
+          break;
+        }
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
       }
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
     }
   }
 }
