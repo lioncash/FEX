@@ -1806,7 +1806,16 @@ DEF_OP(VFNeg) {
 
 DEF_OP(VNot) {
   auto Op = IROp->C<IR::IROp_VNot>();
-  mvn(GetDst(Node).V16B(), GetSrc(Op->Vector.ID()).V16B());
+
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (CanUseSVE) {
+    ptrue(p0.VnB());
+    not_(Dst.Z().VnB(), p0.Merging(), Vector.Z().VnB());
+  } else {
+    mvn(Dst.V16B(), Vector.V16B());
+  }
 }
 
 DEF_OP(VUMin) {
