@@ -1767,14 +1767,40 @@ DEF_OP(VNeg) {
 
 DEF_OP(VFNeg) {
   auto Op = IROp->C<IR::IROp_VFNeg>();
-  switch (Op->Header.ElementSize) {
+
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (CanUseSVE) {
+    // SVE FNEG requires a predicate
+    ptrue(p0.VnB());
+  }
+
+  switch (IROp->ElementSize) {
+  case 2:
+    if (CanUseSVE) {
+      fneg(Dst.Z().VnH(), p0.Merging(), Vector.Z().VnH());
+    } else {
+      fneg(Dst.V8H(), Vector.V8H());
+    }
+    break;
   case 4:
-    fneg(GetDst(Node).V4S(), GetSrc(Op->Vector.ID()).V4S());
+    if (CanUseSVE) {
+      fneg(Dst.Z().VnS(), p0.Merging(), Vector.Z().VnS());
+    } else {
+      fneg(Dst.V4S(), Vector.V4S());
+    }
     break;
   case 8:
-    fneg(GetDst(Node).V2D(), GetSrc(Op->Vector.ID()).V2D());
+    if (CanUseSVE) {
+      fneg(Dst.Z().VnD(), p0.Merging(), Vector.Z().VnD());
+    } else {
+      fneg(Dst.V2D(), Vector.V2D());
+    }
     break;
-  default: LOGMAN_MSG_A_FMT("Unsupported VFNeg size: {}", IROp->Size);
+  default:
+    LOGMAN_MSG_A_FMT("Unsupported VFNeg element size: {}", IROp->ElementSize);
+    break;
   }
 }
 
