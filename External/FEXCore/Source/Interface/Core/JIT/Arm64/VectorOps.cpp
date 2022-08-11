@@ -1401,37 +1401,106 @@ DEF_OP(VFMax) {
 
 DEF_OP(VFRecp) {
   auto Op = IROp->C<IR::IROp_VFRecp>();
-  const uint8_t OpSize = IROp->Size;
-  if (Op->Header.ElementSize == OpSize) {
-    // Scalar
-    switch (Op->Header.ElementSize) {
-      case 4: {
-        fmov(VTMP1.S(), 1.0f);
-        fdiv(GetDst(Node).S(), VTMP1.S(), GetSrc(Op->Vector.ID()).S());
-      break;
+
+  const auto OpSize = IROp->Size;
+  const auto ElementSize = Op->Header.ElementSize;
+
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (CanUseSVE) {
+    // SVE FDIV has no unpredicated variant, so we need to set one up.
+    ptrue(p0.VnB());
+
+    // Clear upper lanes
+    eor(VTMP1.Z().VnD(), VTMP1.Z().VnD(), VTMP1.Z().VnD());
+
+    if (ElementSize == OpSize) {
+      switch (ElementSize) {
+        case 2:
+          fmov(VTMP1.H(), Float16{1.0});
+          fdiv(VTMP1.H(), VTMP1.H(), Vector.H());
+          break;
+        case 4:
+          fmov(VTMP1.S(), 1.0f);
+          fdiv(VTMP1.S(), VTMP1.S(), Vector.S());
+          break;
+        case 8:
+          fmov(VTMP1.D(), 1.0);
+          fdiv(VTMP1.D(), VTMP1.D(), Vector.D());
+          break;
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          return;
       }
-      case 8: {
-        fmov(VTMP1.D(), 1.0);
-        fdiv(GetDst(Node).D(), VTMP1.D(), GetSrc(Op->Vector.ID()).D());
-      break;
+
+      mov(Dst.Z().VnD(), VTMP1.Z().VnD());
+    } else {
+      switch (ElementSize) {
+        case 2:
+          fmov(VTMP1.Z().VnH(), 1.0);
+          fdiv(VTMP1.Z().VnH(), p0.Merging(), VTMP1.Z().VnH(), Vector.Z().VnH());
+          break;
+        case 4:
+          fmov(VTMP1.Z().VnS(), 1.0);
+          fdiv(VTMP1.Z().VnS(), p0.Merging(), VTMP1.Z().VnS(), Vector.Z().VnS());
+          break;
+        case 8:
+          fmov(VTMP1.Z().VnD(), 1.0);
+          fdiv(VTMP1.Z().VnD(), p0.Merging(), VTMP1.Z().VnD(), Vector.Z().VnD());
+          break;
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          return;
       }
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+
+      mov(Dst.Z().VnD(), VTMP1.Z().VnD());
     }
-  }
-  else {
-    // Vector
-    switch (Op->Header.ElementSize) {
-      case 4: {
-        fmov(VTMP1.V4S(), 1.0f);
-        fdiv(GetDst(Node).V4S(), VTMP1.V4S(), GetSrc(Op->Vector.ID()).V4S());
-      break;
+  } else {
+    if (ElementSize == OpSize) {
+      // Scalar
+      switch (ElementSize) {
+        case 2: {
+          fmov(VTMP1.H(), Float16{1.0});
+          fdiv(Dst.H(), VTMP1.H(), Vector.H());
+          break;
+        }
+        case 4: {
+          fmov(VTMP1.S(), 1.0f);
+          fdiv(Dst.S(), VTMP1.S(), Vector.S());
+          break;
+        }
+        case 8: {
+          fmov(VTMP1.D(), 1.0);
+          fdiv(Dst.D(), VTMP1.D(), Vector.D());
+          break;
+        }
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
       }
-      case 8: {
-        fmov(VTMP1.V2D(), 1.0);
-        fdiv(GetDst(Node).V2D(), VTMP1.V2D(), GetSrc(Op->Vector.ID()).V2D());
-      break;
+    } else {
+      // Vector
+      switch (ElementSize) {
+        case 2: {
+          fmov(VTMP1.V8H(), Float16{1.0});
+          fdiv(Dst.V8H(), VTMP1.V8H(), Vector.V8H());
+          break;
+        }
+        case 4: {
+          fmov(VTMP1.V4S(), 1.0f);
+          fdiv(Dst.V4S(), VTMP1.V4S(), Vector.V4S());
+          break;
+        }
+        case 8: {
+          fmov(VTMP1.V2D(), 1.0);
+          fdiv(Dst.V2D(), VTMP1.V2D(), Vector.V2D());
+          break;
+        }
+        default:
+          LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+          break;
       }
-      default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
     }
   }
 }
