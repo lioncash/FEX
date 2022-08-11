@@ -1101,20 +1101,27 @@ DEF_OP(VUMax) {
 
 DEF_OP(VSMax) {
   auto Op = IROp->C<IR::IROp_VSMax>();
+
+  const auto Dst = ToYMM(GetDst(Node));
+  const auto Vector1 = ToYMM(GetSrc(Op->Vector1.ID()));
+  const auto Vector2 = ToYMM(GetSrc(Op->Vector2.ID()));
+
   switch (Op->Header.ElementSize) {
     case 1: {
-      vpmaxsb(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpmaxsb(Dst, Vector1, Vector2);
       break;
     }
     case 2: {
-      vpmaxsw(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpmaxsw(Dst, Vector1, Vector2);
       break;
     }
     case 4: {
-      vpmaxsd(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpmaxsd(Dst, Vector1, Vector2);
       break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize);
+      break;
   }
 }
 
