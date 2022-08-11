@@ -1049,20 +1049,27 @@ DEF_OP(VUMin) {
 
 DEF_OP(VSMin) {
   auto Op = IROp->C<IR::IROp_VSMin>();
+
+  const auto Dst = ToYMM(GetDst(Node));
+  const auto Vector1 = ToYMM(GetSrc(Op->Vector1.ID()));
+  const auto Vector2 = ToYMM(GetSrc(Op->Vector2.ID()));
+
   switch (Op->Header.ElementSize) {
     case 1: {
-      vpminsb(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpminsb(Dst, Vector1, Vector2);
       break;
     }
     case 2: {
-      vpminsw(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpminsw(Dst, Vector1, Vector2);
       break;
     }
     case 4: {
-      vpminsd(GetDst(Node), GetSrc(Op->Vector1.ID()), GetSrc(Op->Vector2.ID()));
+      vpminsd(Dst, Vector1, Vector2);
       break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize);
+      break;
   }
 }
 
