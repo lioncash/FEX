@@ -215,11 +215,14 @@ void Arm64Emitter::SpillStaticRegs(bool FPRs, uint32_t GPRSpillMask, uint32_t FP
 
     if (FPRs) {
       if (EmitterCTX->HostFeatures.SupportsAVX) {
+        ptrue(p0.VnB(), SVE_VL32);
+
         for (size_t i = 0; i < SRAFPR.size(); i++) {
           const auto Reg = SRAFPR[i];
 
           if (((1U << Reg.GetCode()) & FPRSpillMask) != 0) {
-            str(Reg.Q(), MemOperand(STATE, offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[i][0])));
+            mov(TMP1, offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[i][0]));
+            st1b(Reg.Z().VnB(), p0, SVEMemOperand(STATE, TMP1));
           }
         }
       } else {
@@ -262,11 +265,14 @@ void Arm64Emitter::FillStaticRegs(bool FPRs, uint32_t GPRFillMask, uint32_t FPRF
 
     if (FPRs) {
       if (EmitterCTX->HostFeatures.SupportsAVX) {
+        ptrue(p0.VnB(), SVE_VL32);
+
         for (size_t i = 0; i < SRAFPR.size(); i++) {
           const auto Reg = SRAFPR[i];
 
           if (((1U << Reg.GetCode()) & FPRFillMask) != 0) {
-            ldr(Reg.Q(), MemOperand(STATE, offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[i][0])));
+            mov(TMP1, offsetof(FEXCore::Core::CpuStateFrame, State.xmm.avx.data[i][0]));
+            ld1b(Reg.Z().VnB(), p0.Zeroing(), SVEMemOperand(STATE, TMP1));
           }
         }
       } else {
