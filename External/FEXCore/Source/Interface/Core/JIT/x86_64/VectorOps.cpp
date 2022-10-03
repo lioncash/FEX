@@ -1230,29 +1230,35 @@ DEF_OP(VSMax) {
 }
 
 DEF_OP(VZip) {
-  auto Op = IROp->C<IR::IROp_VZip>();
-  movapd(xmm15, GetSrc(Op->VectorLower.ID()));
+  const auto Op = IROp->C<IR::IROp_VZip>();
 
-  switch (Op->Header.ElementSize) {
+  const auto ElementSize = Op->Header.ElementSize;
+
+  const auto Dst = ToYMM(GetDst(Node));
+  const auto VectorLower = ToYMM(GetSrc(Op->VectorLower.ID()));
+  const auto VectorUpper = ToYMM(GetSrc(Op->VectorUpper.ID()));
+
+  switch (ElementSize) {
     case 1: {
-      punpcklbw(xmm15, GetSrc(Op->VectorUpper.ID()));
+      vpunpcklbw(Dst, VectorLower, VectorUpper);
       break;
     }
     case 2: {
-      punpcklwd(xmm15, GetSrc(Op->VectorUpper.ID()));
+      vpunpcklwd(Dst, VectorLower, VectorUpper);
       break;
     }
     case 4: {
-      punpckldq(xmm15, GetSrc(Op->VectorUpper.ID()));
+      vpunpckldq(Dst, VectorLower, VectorUpper);
       break;
     }
     case 8: {
-      punpcklqdq(xmm15, GetSrc(Op->VectorUpper.ID()));
+      vpunpcklqdq(Dst, VectorLower, VectorUpper);
       break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+      break;
   }
-  movapd(GetDst(Node), xmm15);
 }
 
 DEF_OP(VZip2) {
