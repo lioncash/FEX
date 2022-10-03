@@ -1262,51 +1262,63 @@ DEF_OP(VZip) {
 }
 
 DEF_OP(VZip2) {
-  auto Op = IROp->C<IR::IROp_VZip2>();
-  const uint8_t OpSize = IROp->Size;
+  const auto Op = IROp->C<IR::IROp_VZip2>();
+  const auto OpSize = IROp->Size;
 
-  movapd(xmm15, GetSrc(Op->VectorLower.ID()));
+  const auto ElementSize = Op->Header.ElementSize;
+
+  const auto Dst = GetDst(Node);
+  const auto VectorLower = GetSrc(Op->VectorLower.ID());
+  const auto VectorUpper = GetSrc(Op->VectorUpper.ID());
 
   if (OpSize == 8) {
-    vpslldq(xmm15, GetSrc(Op->VectorLower.ID()), 4);
-    vpslldq(xmm14, GetSrc(Op->VectorUpper.ID()), 4);
-    switch (Op->Header.ElementSize) {
+    movapd(xmm15, VectorLower);
+    vpslldq(xmm15, VectorLower, 4);
+    vpslldq(xmm14, VectorUpper, 4);
+    switch (ElementSize) {
     case 1: {
-      vpunpckhbw(GetDst(Node), xmm15, xmm14);
-    break;
+      vpunpckhbw(Dst, xmm15, xmm14);
+      break;
     }
     case 2: {
-      vpunpckhwd(GetDst(Node), xmm15, xmm14);
-    break;
+      vpunpckhwd(Dst, xmm15, xmm14);
+      break;
     }
     case 4: {
-      vpunpckhdq(GetDst(Node), xmm15, xmm14);
-    break;
+      vpunpckhdq(Dst, xmm15, xmm14);
+      break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+      return;
     }
   }
   else {
-    switch (Op->Header.ElementSize) {
+    const auto DstYMM = ToYMM(Dst);
+    const auto VectorLowerYMM = ToYMM(VectorLower);
+    const auto VectorUpperYMM = ToYMM(VectorUpper);
+
+    switch (ElementSize) {
     case 1: {
-      punpckhbw(xmm15, GetSrc(Op->VectorUpper.ID()));
-    break;
+      vpunpckhbw(DstYMM, VectorLowerYMM, VectorUpperYMM);
+      break;
     }
     case 2: {
-      punpckhwd(xmm15, GetSrc(Op->VectorUpper.ID()));
-    break;
+      vpunpckhwd(DstYMM, VectorLowerYMM, VectorUpperYMM);
+      break;
     }
     case 4: {
-      punpckhdq(xmm15, GetSrc(Op->VectorUpper.ID()));
-    break;
+      vpunpckhdq(DstYMM, VectorLowerYMM, VectorUpperYMM);
+      break;
     }
     case 8: {
-      punpckhqdq(xmm15, GetSrc(Op->VectorUpper.ID()));
-    break;
+      vpunpckhqdq(DstYMM, VectorLowerYMM, VectorUpperYMM);
+      break;
     }
-    default: LOGMAN_MSG_A_FMT("Unknown Element Size: {}", Op->Header.ElementSize); break;
+    default:
+      LOGMAN_MSG_A_FMT("Unknown Element Size: {}", ElementSize);
+      break;
     }
-    movapd(GetDst(Node), xmm15);
   }
 }
 
