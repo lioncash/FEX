@@ -3783,31 +3783,60 @@ DEF_OP(VExtr) {
 }
 
 DEF_OP(VSLI) {
-  auto Op = IROp->C<IR::IROp_VSLI>();
-  const uint8_t OpSize = IROp->Size;
-  const uint8_t BitShift = Op->ByteShift * 8;
-  if (BitShift < 64) {
-    // Move to Pair [TMP2:TMP1]
-    mov(TMP1, GetSrc(Op->Vector.ID()).V2D(), 0);
-    mov(TMP2, GetSrc(Op->Vector.ID()).V2D(), 1);
-    // Left shift low 64bits
-    lsl(TMP3, TMP1, BitShift);
+  const auto Op = IROp->C<IR::IROp_VSLI>();
+  const auto OpSize = IROp->Size;
 
-    // Extract high 64bits from [TMP2:TMP1]
-    extr(TMP1, TMP2, TMP1, 64 - BitShift);
+  const auto BitShift = Op->ByteShift * 8;
+  const auto Is256Bit = OpSize == Core::CPUState::XMM_AVX_REG_SIZE;
 
-    mov(GetDst(Node).V2D(), 0, TMP3);
-    mov(GetDst(Node).V2D(), 1, TMP1);
-  }
-  else {
+  const auto Dst = GetDst(Node);
+  const auto Vector = GetSrc(Op->Vector.ID());
+
+  if (HostSupportsSVE && Is256Bit) {
     if (Op->ByteShift >= OpSize) {
-      eor(GetDst(Node).V16B(), GetDst(Node).V16B(), GetDst(Node).V16B());
+      eor(Dst.Z().VnD(), Dst.Z().VnD(), Dst.Z().VnD());
+      return;
     }
-    else {
-      mov(TMP1, GetSrc(Op->Vector.ID()).V2D(), 0);
-      lsl(TMP1, TMP1, BitShift - 64);
-      mov(GetDst(Node).V2D(), 0, xzr);
-      mov(GetDst(Node).V2D(), 1, TMP1);
+
+    auto AmountLeft = Op->ByteShift;
+    mov(Dst.Z().VnD(), Vector.Z().VnD());
+    while (AmountLeft != 0) {
+      if (AmountLeft % 8 == 0) {
+        insr(Dst.Z().VnD(), xzr);
+        AmountLeft -= 8;
+      } else if (AmountLeft % 4 == 0) {
+        insr(Dst.Z().VnS(), xzr);
+        AmountLeft -= 4;
+      } else if (AmountLeft % 2 == 0) {
+        insr(Dst.Z().VnH(), xzr);
+        AmountLeft -= 2;
+      } else {
+        insr(Dst.Z().VnB(), xzr);
+        AmountLeft -= 1;
+      }
+    }
+  } else {
+    if (BitShift < 64) {
+      // Move to Pair [TMP2:TMP1]
+      mov(TMP1, Vector.V2D(), 0);
+      mov(TMP2, Vector.V2D(), 1);
+      // Left shift low 64bits
+      lsl(TMP3, TMP1, BitShift);
+
+      // Extract high 64bits from [TMP2:TMP1]
+      extr(TMP1, TMP2, TMP1, 64 - BitShift);
+
+      mov(Dst.V2D(), 0, TMP3);
+      mov(Dst.V2D(), 1, TMP1);
+    } else {
+      if (Op->ByteShift >= OpSize) {
+        eor(Dst.V16B(), Dst.V16B(), Dst.V16B());
+      } else {
+        mov(TMP1, Vector.V2D(), 0);
+        lsl(TMP1, TMP1, BitShift - 64);
+        mov(Dst.V2D(), 0, xzr);
+        mov(Dst.V2D(), 1, TMP1);
+      }
     }
   }
 }

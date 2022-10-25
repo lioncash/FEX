@@ -1602,12 +1602,49 @@ DEF_OP(VExtr) {
 }
 
 DEF_OP(VSLI) {
-  auto Op = IROp->C<IR::IROp_VSLI>();
-  const __uint128_t Src1 = *GetSrc<__uint128_t*>(Data->SSAData, Op->Vector);
-  const __uint128_t Src2 = Op->ByteShift * 8;
+  const auto Op = IROp->C<IR::IROp_VSLI>();
+  const auto OpSize = IROp->Size;
 
-  const __uint128_t Dst = Op->ByteShift >= sizeof(__uint128_t) ? 0 : Src1 << Src2;
-  memcpy(GDP, &Dst, 16);
+  const auto ByteShift = Op->ByteShift;
+  const auto Is256Bit = OpSize == Core::CPUState::XMM_AVX_REG_SIZE;
+
+  if (Is256Bit) {
+    const auto Vector = *GetSrc<InterpVector256*>(Data->SSAData, Op->Vector);
+    const auto BitShift = ByteShift * 8;
+
+    constexpr auto AVXRegSize = Core::CPUState::XMM_AVX_REG_SIZE;
+    constexpr auto AVXBitSize = AVXRegSize * 8;
+
+    constexpr auto SSERegSize = Core::CPUState::XMM_SSE_REG_SIZE;
+    constexpr auto SSEBitSize = SSERegSize * 8;
+
+    if (ByteShift == 0) {
+      memcpy(GDP, &Vector, AVXRegSize);
+    } else if (ByteShift == SSERegSize) {
+      memcpy(static_cast<uint8_t*>(GDP) + SSERegSize, &Vector.Lower, SSERegSize);
+      memset(GDP, 0, SSERegSize);
+    } else if (ByteShift < SSERegSize) {
+      const auto Result = InterpVector256{
+        .Lower = Vector.Lower << BitShift,
+        .Upper = (Vector.Upper << BitShift) + (Vector.Lower >> (SSEBitSize - BitShift)),
+      };
+      memcpy(GDP, &Result, sizeof(Result));
+    } else if (AVXRegSize > ByteShift && ByteShift > SSERegSize) {
+      const auto Result = InterpVector256{
+        .Lower = 0,
+        .Upper = Vector.Lower << (BitShift - SSEBitSize),
+      };
+      memcpy(GDP, &Result, sizeof(Result));
+    } else {
+      memset(GDP, 0, AVXRegSize);
+    }
+  } else {
+    const __uint128_t Src1 = *GetSrc<__uint128_t*>(Data->SSAData, Op->Vector);
+    const __uint128_t Src2 = ByteShift * 8;
+
+    const __uint128_t Dst = ByteShift >= sizeof(__uint128_t) ? 0 : Src1 << Src2;
+    memcpy(GDP, &Dst, sizeof(Dst));
+  }
 }
 
 DEF_OP(VSRI) {
