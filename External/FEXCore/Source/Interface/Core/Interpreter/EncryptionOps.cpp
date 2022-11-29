@@ -514,7 +514,9 @@ DEF_OP(CRC32) {
 }
 
 DEF_OP(PCLMUL) {
-  auto Op = IROp->C<IR::IROp_PCLMUL>();
+  const auto Op = IROp->C<IR::IROp_PCLMUL>();
+  const auto OpSize = IROp->Size;
+  const auto Is256Bit = OpSize == Core::CPUState::XMM_AVX_REG_SIZE;
 
   const auto Selector = Op->Selector;
   auto* Dst  = GetDest<uint64_t*>(Data->SSAData, Node);
@@ -523,7 +525,7 @@ DEF_OP(PCLMUL) {
 
   const uint64_t TMP1 = (Selector & 0x01) == 0 ? Src1[0] : Src1[1];
   const uint64_t TMP2 = (Selector & 0x10) == 0 ? Src2[0] : Src2[1];
-  
+
   const auto make_lo = [](uint64_t lhs, uint64_t rhs) {
     uint64_t result = 0;
 
@@ -549,6 +551,12 @@ DEF_OP(PCLMUL) {
 
   Dst[0] = make_lo(TMP1, TMP2);
   Dst[1] = make_hi(TMP1, TMP2);
+  if (Is256Bit) {
+    const uint64_t TMP3 = (Selector & 0x01) == 0 ? Src1[2] : Src1[3];
+    const uint64_t TMP4 = (Selector & 0x10) == 0 ? Src2[2] : Src2[3];
+    Dst[2] = make_lo(TMP3, TMP4);
+    Dst[3] = make_hi(TMP3, TMP4);
+  }
 }
 
 #undef DEF_OP

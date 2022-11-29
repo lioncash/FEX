@@ -103,26 +103,60 @@ DEF_OP(CRC32) {
 }
 
 DEF_OP(PCLMUL) {
-  auto Op = IROp->C<IR::IROp_PCLMUL>();
+  const auto Op = IROp->C<IR::IROp_PCLMUL>();
+  const auto OpSize = IROp->Size;
+  const auto Is256Bit = OpSize == Core::CPUState::XMM_AVX_REG_SIZE;
 
-  auto Dst  = GetDst(Node).Q();
-  auto Src1 = GetSrc(Op->Src1.ID()).V2D();
-  auto Src2 = GetSrc(Op->Src2.ID()).V2D();
+  const auto Dst  = GetDst(Node);
+  const auto Src1 = GetSrc(Op->Src1.ID());
+  const auto Src2 = GetSrc(Op->Src2.ID());
 
   switch (Op->Selector) {
   case 0b00000000:
-    pmull(Dst, Src1, Src2);
+    if (Is256Bit) {
+      pmullb(Dst.Z().VnQ(), Src1.Z().VnD(), Src2.Z().VnD());
+    } else {
+      pmull(Dst.Q(), Src1.V2D(), Src2.V2D());
+    }
     break;
   case 0b00000001:
-    mov(VTMP1.V1D(), Src1, 1);
-    pmull(Dst, VTMP1.V2D(), Src2);
+    if (Is256Bit) {
+      dup(VTMP1.Z().VnD(), Src1.Z().VnD(), 1);
+      dup(VTMP2.Z().VnD(), Src1.Z().VnD(), 3);
+
+      pmullb(VTMP1.Z().VnQ(), VTMP1.Z().VnD(), Src2.Z().VnD());
+      pmullb(Dst.Z().VnQ(), VTMP2.Z().VnD(), Src2.Z().VnD());
+
+      ptrue(p0.VnD(), SVE_VL1);
+
+      mov(Dst.Z().VnD(), p0.Merging(), VTMP1.Z().VnD());
+    } else {
+      mov(VTMP1.V1D(), Src1.V2D(), 1);
+      pmull(Dst.Q(), VTMP1.V2D(), Src2.V2D());
+    }
     break;
   case 0b00010000:
-    mov(VTMP1.V1D(), Src2, 1);
-    pmull(Dst, VTMP1.V2D(), Src1);
+    if (Is256Bit) {
+      dup(VTMP1.Z().VnD(), Src2.Z().VnD(), 1);
+      dup(VTMP2.Z().VnD(), Src2.Z().VnD(), 3);
+
+      pmullb(VTMP1.Z().VnQ(), VTMP1.Z().VnD(), Src1.Z().VnD());
+      pmullb(Dst.Z().VnQ(), VTMP2.Z().VnD(), Src1.Z().VnD());
+
+      ptrue(p0.VnD(), SVE_VL1);
+
+      mov(Dst.Z().VnD(), p0.Merging(), VTMP1.Z().VnD());
+    } else {
+      mov(VTMP1.V1D(), Src2.V2D(), 1);
+      pmull(Dst.Q(), VTMP1.V2D(), Src1.V2D());
+    }
     break;
   case 0b00010001:
-    pmull2(Dst, Src1, Src2);
+    if (Is256Bit) {
+      pmullt(Dst.Z().VnQ(), Src1.Z().VnD(), Src2.Z().VnD());
+    } else {
+      pmull2(Dst.Q(), Src1.V2D(), Src2.V2D());
+    }
     break;
   default:
     LOGMAN_MSG_A_FMT("Unknown PCLMUL selector: {}", Op->Selector);
