@@ -423,6 +423,11 @@ struct OpHandlers<IR::OP_VPCMPESTRX> {
     const auto valid_lhs = GetExplicitLength(RAX, control) - 1;
     const auto valid_rhs = GetExplicitLength(RDX, control) - 1;
 
+    LogMan::Msg::IFmt("RAX: {:016X} | RDX: {:016X}", RAX, RDX);
+    LogMan::Msg::IFmt("Control: {:08X}", control);
+    LogMan::Msg::IFmt("LHS: {:X}", lhs);
+    LogMan::Msg::IFmt("RHS: {:X}", rhs);
+
     return MainBody(lhs, valid_lhs, rhs, valid_rhs, control);
   }
 
