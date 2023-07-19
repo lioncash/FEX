@@ -8,6 +8,8 @@ $end_info$
 #include "Interface/Core/ArchHelpers/CodeEmitter/Registers.h"
 #include "Interface/Core/JIT/Arm64/JITClass.h"
 
+#include <FEXCore/Utils/MathUtils.h>
+
 namespace FEXCore::CPU {
 #define DEF_OP(x) void Arm64JITCore::Op_##x(IR::IROp_Header const *IROp, IR::NodeID Node)
 DEF_OP(VectorZero) {
@@ -2311,19 +2313,17 @@ DEF_OP(VInsElement) {
     auto Data = [ElementSize, DestIdx]() -> uint32_t {
       switch (ElementSize) {
         case 1:
-          LOGMAN_THROW_AA_FMT(DestIdx <= 31, "DestIdx out of range: {}", DestIdx);
-          return 1U << DestIdx;
         case 2:
-          LOGMAN_THROW_AA_FMT(DestIdx <= 15, "DestIdx out of range: {}", DestIdx);
-          return 1U << (DestIdx * 2);
         case 4:
-          LOGMAN_THROW_AA_FMT(DestIdx <= 7, "DestIdx out of range: {}", DestIdx);
-          return 1U << (DestIdx * 4);
-        case 8:
-          LOGMAN_THROW_AA_FMT(DestIdx <= 3, "DestIdx out of range: {}", DestIdx);
-          return 1U << (DestIdx * 8);
+        case 8: {
+          const auto MaxIndex = (32U >> FEXCore::ilog2(ElementSize)) - 1;
+          LOGMAN_THROW_AA_FMT(DestIdx <= MaxIndex,
+                              "DestIdx out of range: {}. Must be within [0, {}]", DestIdx, MaxIndex);
+          return 1U << (DestIdx * ElementSize);
+        }
         case 16:
-          LOGMAN_THROW_AA_FMT(DestIdx <= 1, "DestIdx out of range: {}", DestIdx);
+          LOGMAN_THROW_AA_FMT(DestIdx <= 1,
+                              "DestIdx out of range: {}. Must be within [0, 1]", DestIdx);
           // Predicates can't be subdivided into the Q format, so we can just set up
           // the predicate to select the two adjacent doublewords.
           return 0x101U << (DestIdx * 16);
