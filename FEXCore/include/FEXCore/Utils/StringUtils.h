@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 #pragma once
+
 #include <FEXCore/fextl/string.h>
+#include <functional>
 
 namespace FEXCore::StringUtils {
 // Trim the left side of the string of whitespace and new lines
@@ -27,5 +29,20 @@ inline fextl::string RightTrim(fextl::string String, std::string_view TrimTokens
 inline fextl::string Trim(fextl::string String, std::string_view TrimTokens = " \t\n\r\f\v") {
   return RightTrim(LeftTrim(std::move(String), TrimTokens), TrimTokens);
 }
+
+// Useful for unordered data structures where heterogenous lookup is beneficial.
+struct StringHasher {
+  using is_transparent = void;
+
+  size_t operator()(const char* str) const noexcept {
+    return std::hash<std::string_view>()(str);
+  }
+  size_t operator()(std::string_view str) const noexcept {
+    return std::hash<std::string_view>()(str);
+  }
+  size_t operator()(const fextl::string& str) const noexcept {
+    return std::hash<fextl::string>()(str);
+  }
+};
 
 } // namespace FEXCore::StringUtils
