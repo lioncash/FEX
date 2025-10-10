@@ -279,8 +279,8 @@ FileManager::FileManager(FEXCore::Context::Context* ctx)
     // Recursively add paths for this thunk library and its dependencies to ThunkOverlays.
     // Using a local struct for this is slightly less ugly than using self-capturing lambdas
     struct {
-      decltype(FileManager::ThunkOverlays)& ThunkOverlays;
-      decltype(ThunkDB)& ThunkDB;
+      ThunkOverlayMap& ThunkOverlays;
+      ThunkDBMap& ThunkDB;
       const fextl::string& ThunkGuestPath;
       bool Is64BitMode;
 
@@ -300,7 +300,7 @@ FileManager::FileManager(FEXCore::Context::Context* ctx)
         }
       };
 
-      void InsertDependencies(const fextl::unordered_set<fextl::string>& Depends) {
+      void InsertDependencies(const ThunkDBObject::ThunkDependencies& Depends) {
         for (const auto& Depend : Depends) {
           auto& DBDepend = ThunkDB.at(Depend);
           if (DBDepend.Enabled) {

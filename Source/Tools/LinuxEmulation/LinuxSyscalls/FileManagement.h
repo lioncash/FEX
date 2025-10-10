@@ -169,16 +169,21 @@ private:
   ssize_t StripRootFSPrefix(char* pathname, ssize_t len, bool leaky) const;
 
   struct ThunkDBObject {
+    using ThunkDependencies = fextl::unordered_set<fextl::string>;
+    using ThunkOverlays = fextl::vector<fextl::string>;
+
     fextl::string LibraryName;
-    fextl::unordered_set<fextl::string> Depends;
-    fextl::vector<fextl::string> Overlays;
+    ThunkDependencies Depends;
+    ThunkOverlays Overlays;
     bool Enabled {};
   };
   using ThunkDBMap = fextl::unordered_map<fextl::string, ThunkDBObject, FEXCore::StringUtils::StringHasher, std::equal_to<>>;
+  using ThunkOverlayMap = fextl::map<fextl::string, fextl::string, std::less<>>;
+
   void LoadThunkDatabase(ThunkDBMap& ThunkDB, bool Global);
   FEX::EmulatedFile::EmulatedFDManager EmuFD;
 
-  fextl::map<fextl::string, fextl::string, std::less<>> ThunkOverlays;
+  ThunkOverlayMap ThunkOverlays;
 
   FEX_CONFIG_OPT(Filename, APP_FILENAME);
   FEX_CONFIG_OPT(LDPath, ROOTFS);
