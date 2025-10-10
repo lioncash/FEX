@@ -6,7 +6,9 @@ $end_info$
 */
 
 #pragma once
+
 #include <FEXCore/Config/Config.h>
+#include <FEXCore/Utils/StringUtils.h>
 #include <FEXCore/fextl/map.h>
 #include <FEXCore/fextl/set.h>
 #include <FEXCore/fextl/string.h>
@@ -172,7 +174,8 @@ private:
     fextl::vector<fextl::string> Overlays;
     bool Enabled {};
   };
-  void LoadThunkDatabase(fextl::unordered_map<fextl::string, ThunkDBObject>& ThunkDB, bool Global);
+  using ThunkDBMap = fextl::unordered_map<fextl::string, ThunkDBObject, FEXCore::StringUtils::StringHasher, std::equal_to<>>;
+  void LoadThunkDatabase(ThunkDBMap& ThunkDB, bool Global);
   FEX::EmulatedFile::EmulatedFDManager EmuFD;
 
   fextl::map<fextl::string, fextl::string, std::less<>> ThunkOverlays;

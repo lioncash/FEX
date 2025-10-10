@@ -18,6 +18,7 @@ $end_info$
 
 #include <FEXCore/Utils/LogManager.h>
 #include <FEXCore/Utils/FileLoading.h>
+#include <FEXCore/Utils/StringUtils.h>
 #include <FEXCore/fextl/fmt.h>
 #include <FEXCore/fextl/list.h>
 #include <FEXCore/fextl/string.h>
@@ -50,7 +51,7 @@ bool FileManager::RootFSPathExists(const char* Filepath) const {
   return FHU::Filesystem::ExistsAt(RootFSFD, Filepath + 1);
 }
 
-void FileManager::LoadThunkDatabase(fextl::unordered_map<fextl::string, ThunkDBObject>& ThunkDB, bool Global) {
+void FileManager::LoadThunkDatabase(ThunkDBMap& ThunkDB, bool Global) {
   auto ThunkDBPath = FEXCore::Config::GetConfigDirectory(Global) + "ThunksDB.json";
   fextl::vector<char> FileData;
   if (FEXCore::FileLoading::LoadFile(FileData, ThunkDBPath)) {
@@ -230,7 +231,7 @@ FileManager::FileManager(FEXCore::Context::Context* ctx)
     }
   }
 
-  fextl::unordered_map<fextl::string, ThunkDBObject> ThunkDB;
+  ThunkDBMap ThunkDB;
   LoadThunkDatabase(ThunkDB, true);
   LoadThunkDatabase(ThunkDB, false);
 
